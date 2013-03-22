@@ -39,30 +39,35 @@ uint32_t proc_save_ctx(void)
 {
 	uint32_t result=0;
 
-__asm volatile ("MRS r0, msp        \n\t"
-               "STMDB r0!, {r4-r11} \n\t"
-               "MSR msp, r0         \n\t"
-               "MOV %0, r0          \n\t"
-               "BX  lr              \n\t"  : "=r" (result) );
+   __asm volatile (
+   "MRS r0, msp         \n\t"
+   "STMDB r0!, {r4-r11} \n\t"
+   "MSR msp, r0         \n\t"
+   "MOV %0, r0          \n\t"
+   "BX  lr              \n\t"
+      : "=r" (result) );
 	return result;
 }
 
 uint32_t proc_load_ctx(void)
 {
 	uint32_t result=0;
-__asm volatile ("MRS r0, msp        \n\t"
-               "LDMFD r0!, {r4-r11} \n\t"
-               "MSR msp, r0         \n\t"
-               "MOV %0, r0          \n\t"
-               "BX  lr              \n\t"  : "=r" (result) );
+   __asm volatile (
+   "MRS r0, msp         \n\t"
+   "LDMFD r0!, {r4-r11} \n\t"
+   "MSR msp, r0         \n\t"
+   "MOV %0, r0          \n\t"
+   "BX  lr              \n\t"
+      : "=r" (result) );
    return result;
 }
 
 
 void context_switch(uint32_t s)
 {
-   __asm volatile ("MSR msp, %0  \n\t"
-				   "BX  lr       \n\t" : : "r" (s) );
+   __asm volatile (
+   "MSR msp, %0  \n\t"
+	"BX  lr       \n\t" : : "r" (s) );
 }
 
 uint32_t proc_sel_stack (int pid)
@@ -92,13 +97,11 @@ void proc_store_stack_pointer (uint32_t sp)
 }
 
 
-void proc_set_current_pid(int pid)
-{
+__INLINE void proc_set_current_pid(int pid){
    cur_pid = last_pid = pid;
 }
  
-int proc_get_current_pid(void)
-{
+__INLINE int proc_get_current_pid(void){
    return cur_pid;
 }
  
@@ -136,28 +139,33 @@ void proc_dec_ticks (int pid)
 }
 
 
-exit_t proc_init (void)
+
+void proc_idle(void)
 {
-   alloc_init ();
-   return EXIT_OK;
+   while (1)
+      ;
 }
 
-
-int proc_newproc (process_ptr_t fptr, int8_t nice, int8_t fit, size_t mem)
+int proc_newproc (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
 {
    int8_t  i, pid=-1;
    uint32_t* pm = NULL;
    hw_stack_frame_t  *pfrm;
 
-   /* Find an empty slot in proc table*/
+   /* Find an empty slot in proc table */
    for (i=0 ; i<MAX_PROC ; ++i)
       if (!proc[i].is)
          break;
 
-   /* Find available space in memory*/
-   __malloc_lock ();
-   pm = (uint32_t*)m_al (mem, AL_STACK);
+   /* Find available space in memory */
+   if ( !al_boot () )
+      pm = (uint32_t*)m_al (mem, AL_STACK);
+   else
+   {
+      __malloc_lock ();
+      pm = (uint32_t*)m_al (mem, AL_STACK);
       __malloc_unlock ();
+   }
 
    if (i>=MAX_PROC || pm == NULL)
       return pid;

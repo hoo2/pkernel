@@ -32,7 +32,7 @@
 #include "os.h"
 
 
-exit_t pkernel_newprocess (process_ptr_t fptr, int8_t nice, int8_t fit, uint16_t mem);
+exit_t pkernel_newprocess (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
 exit_t pkernel_boot (size_t __kmsize, kclock_t clk, kclock_t os_f);
 void   pkernel_run (void);
 

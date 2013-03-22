@@ -25,12 +25,12 @@
 #include "pkernel.h"
 
 
-exit_t pkernel_newprocess (process_ptr_t fptr, int8_t nice, int8_t fit, uint16_t mem)
+exit_t pkernel_newprocess (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
 {
    int pid;
    OS_HALT_ISR();
-   pid = proc_newproc(fptr, nice, fit, mem);
-   if (pid != -1)
+   pid = proc_newproc(fptr, mem, nice, fit);
+   if (pid != -1) // Success
    {
       sch_add_proc (pid);
       OS_RESUME_ISR();
@@ -45,14 +45,15 @@ exit_t  pkernel_boot (size_t __kmsize, kclock_t clk, kclock_t os_f)
    kSetPriority(PendSV_IRQn, OS_PENDSV_PRI);
    kSetPriority(SysTick_IRQn, OS_SYSTICK_PRI);
 
-   kset_clock (clk);
+   kset_clock (clk);    // Update kernel's knowledge for clocking
    kset_os_freq (os_f);
-   proc_init ();  // Init the Stack allocation table.
-   proc_newproc ((process_ptr_t)&sch_idle_proc, 0, 0, __kmsize); // Make the idle proc
+   alloc_init ();       // Init the Stack allocation table.
+   // Make the idle proc
+   proc_newproc ((process_ptr_t)&proc_idle, __kmsize, 0, 0);
    /*
     * We make sure that we are outside off ANY process (pid = -1)
-    * so the idle's proc[0].ctx.sp remains untouched by
-    * OS's stack switching mechanism proc_store_stack_pointer().
+    * so the idle's proc[0].tcb.sp remains untouched by
+    * PendSV until our first context_switch from idle.
     */
    proc_set_current_pid(-1);
    return EXIT_OK;
@@ -60,12 +61,23 @@ exit_t  pkernel_boot (size_t __kmsize, kclock_t clk, kclock_t os_f)
 
 void pkernel_run (void)
 {
-   kinit_SysTick (); // Conf and start SysTick
-   OS_Call ((void*)0, OS_TRIG);  // And jump to runq process
+   kinit_SysTick (); // Configure and start SysTick
 
-   while (1);  // Stay here until OS starts.
+   /*
+    * Its now safe to:
+    * - Permit malloc in the kernel's heap. This destroys the first stack
+    * - Set boot flag so new process will wait for __malloc_lock
+    * - OS_Call for the first context_switch
+    */
+   __malloc_unlock ();
+   set_al_boot ();
+   OS_Call ((void*)0, OS_TRIG);  // PendSV request
+   while (1)   // Stay here until OS starts.
+      ;
    /*
     * XXX: The kernel never returns to this thread again.
-    * If there is no process it will force the sch_idle_proc()
+    * If there is no process it will force the proc_idle().
+    * proc_idle() has its own stack (a.k.a kernel's stack) by
+    * pkernel_boot (KERNELS_SIZE, clk, os_f) call.
     */
 }

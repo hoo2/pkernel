@@ -38,21 +38,19 @@ static os_command_t os_command;
   */
 void SysTick_Handler(void)
 {
-   int pid;
-
-   ++Ticks;     //Update Exported Counters
+   //Update Exported Counters
+   ++Ticks;
 	if ( !(Ticks % kget_os_freq ()) )
 	   ++Now;
 
-	/* If we have process in runq and the pkernel is up
-	 * consume time of it.
-	 */
-   if (!sch_runq_empty () && (pid=proc_get_current_pid () ))
-      proc_dec_ticks (pid);
+	// If we have process in runq consume time of it.
+   if ( !sch_runq_empty () )
+      proc_dec_ticks (proc_get_current_pid());
 
    // Pend OS handler
    OS_Call ((void*)0, OS_TRIG);
 }
+
 /**
   * @brief  This function handles PendSV.
   * @param  None
@@ -61,9 +59,9 @@ void SysTick_Handler(void)
 void PendSV_Handler (void)
 {
 	uint32_t reg;
-   static uint32_t _lr=0;
+   static uint32_t linkreg=0;
 
-	__asm volatile ("MOV %0, lr" : "=r" (_lr));
+	__ASM volatile ("MOV %0, lr" : "=r" (linkreg));
 
 	if (os_command.flags)         // Clear wait flags
 	   os_command.flags = 0;
@@ -88,7 +86,7 @@ void PendSV_Handler (void)
 	 */
 	proc_load_ctx ();
 	// Add custom epilogue to return from ISR
-	__asm volatile ("BX %0" : : "r" (_lr));
+	__ASM volatile ("BX %0" : : "r" (linkreg));
 }
 
 
@@ -169,8 +167,7 @@ void signal (sem_t *s)
  * If the mutex is positive clears it,
  * if 0 then suspends the process.
  */
-inline void lock (sem_t *s)   // same as wait
-{
+__INLINE void lock (sem_t *s){
    return wait(s);
 }
 

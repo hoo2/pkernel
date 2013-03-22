@@ -23,30 +23,18 @@
  */
 
 #include "alloc.h"
-#include "stdlib.h"
 
 static al_t al[ALLOC_SIZE];
-static uint8_t malock = 0;
+static uint8_t malock = 1;    // Don't permit malloc before pkernel boot
+static uint8_t al_boot_f = 0;   // Flag to permit stack allocation before pkernel_run
 
 /*=============  Interrupt Service Routine  ====================*/
 
-void __malloc_lock (void)
+static void al_zeropad (char *p, size_t s)
 {
-   while (malock == 1)
-      ;
-   malock = 1;
-}
-
-void __malloc_unlock (void)
-{
-   malock = 0;
-}
-
-static void al_zeropad (uint8_t *p, size_t s)
-{
-   uint8_t *zp;
-   for (zp = p; zp - p < s * sizeof(size_t); ++zp)
-      *zp = 0;
+   char *zp;
+   for (zp=p; zp-p<s ; ++zp)
+      *zp=0;
 }
 
 static void swap_al (al_t *a1, al_t *a2)
@@ -61,18 +49,18 @@ static void al_short (void)
    uint8_t i;
    uint8_t ok, top, ttop;
 
-   top = ALLOC_SIZE - 1;
+   top = ttop = ALLOC_SIZE - 1;
    do
    {
-      for (ok = 1, i = 0; i < top; ++i)
+      for (ok=1, i=0; i<top; ++i)
       {
-         if ((al[i].flag > al[i + 1].flag)
-               || (al[i].flag == al[i + 1].flag
-                     && al[i].mem_ptr > al[i + 1].mem_ptr))
+         if ((al[i].flag > al[i+1].flag)
+               || (al[i].flag == al[i+1].flag
+                     && al[i].mem_ptr > al[i+1].mem_ptr))
          {
             ok = 0;
             ttop = i;
-            swap_al (&al[i], &al[i + 1]);
+            swap_al (&al[i], &al[i+1]);
          }
       }
       top = ttop;
@@ -80,17 +68,39 @@ static void al_short (void)
    while (!ok);
 }
 
+void __malloc_lock (void)
+{
+   while (malock == 1)
+      ;
+   malock = 1;
+}
+
+void __malloc_unlock (void){
+   malock = 0;
+}
+
+__INLINE uint8_t al_boot (void){
+   return al_boot_f;
+}
+
+__INLINE void set_al_boot (void){
+   al_boot_f = 1;
+}
+
 void *m_al (size_t sz, al_mem_type_t mt)
 {
-   int8_t i, slot;
+   int8_t i, slot, r;
    size_t min, asz;
    void* mptr = NULL;
+
+   if ((r=sz%sizeof(size_t)) != 0)  // Alignment to size_t
+      sz += sizeof(size_t) - r;
 
    /*
     * First check for available space in al[] array
     * and store the available slot
     */
-   for (i = 0; i < ALLOC_SIZE && al[i].flag != MA_UNUSED; ++i)
+   for (i=0; al[i].flag != MA_UNUSED && i<ALLOC_SIZE ; ++i)
       ;
    if (i >= ALLOC_SIZE)
       return mptr;
@@ -98,36 +108,37 @@ void *m_al (size_t sz, al_mem_type_t mt)
       slot = i;
 
    /*
+    * Best match:
+    * - Calculate the space between the blocks.
+    * - The next non empty place is the next place in al[]
+    * - Keep track of the min acceptable space.
+    */
+   for (i=0, min=(size_t)-1;
+		   al[i+1].flag!=MA_UNUSED && i<ALLOC_SIZE-1; ++i)
+   {
+      asz = (al[i+1].mem_ptr - al[i].mem_ptr) - al[i].sz;
+
+      if (sz<=asz && asz<min)
+      {
+         min = asz;
+         mptr = (void*) ((uint32_t)al[i].mem_ptr + al[i].sz);
+      }
+   }
+
+   /*
     * Dispatch in two methods.
     * Stack: Return the tip+1 address of the best match.
     * Heap:  Return the base address of the best match.
     */
-   for (i=0, min = (size_t) -1;
-		   al[i+1].flag!=MA_UNUSED && i<ALLOC_SIZE-1; ++i)
-   {
-      /*
-       * Best match:
-       * Calculate the space between the blocks.
-       * The next non empty place is the next place in al[]
-       * AND Keep track of the min acceptable space.
-       */
-      asz = (al[i + 1].mem_ptr - al[i].mem_ptr) / sizeof(size_t) - al[i].sz;
-
-      if (sz <= asz && asz < min)
-      {
-         min = asz;
-         mptr = (void*) ((uint32_t) al[i].mem_ptr + al[i].sz * sizeof(size_t));
-      }
-   }
-   if (mptr)   // Place found
+   if (mptr)
    {
       if (mt == AL_STACK)
       {
-         al[slot].mem_ptr = mptr + (min - sz) * sizeof(size_t);
+         al[slot].mem_ptr = mptr + (min - sz);
          al[slot].sz = sz;
-         mptr = (void*) (al[slot].mem_ptr + sz * sizeof(size_t));
+         mptr = (void*) (al[slot].mem_ptr + sz);
       }
-      else // mt == AL_HEAP
+      else  // AL_HEAP
       {
          al[slot].mem_ptr = mptr;
          al[slot].sz = sz;
@@ -135,7 +146,6 @@ void *m_al (size_t sz, al_mem_type_t mt)
       al[slot].flag = MA_BLOCK;
       al_short ();
    }
-
    return mptr;
 }
 
@@ -155,12 +165,14 @@ void m_fr (void* p)
 
 caddr_t _sbrk ( int incr )
 {
-   int s = incr/sizeof(size_t);
-   int r = incr%sizeof(size_t);
-
-   if (r)
-      ++s;
-   return (caddr_t) m_al (s, AL_HEAP);
+   if (incr>0)
+      return (caddr_t) m_al (incr, AL_HEAP);
+   else
+      return (caddr_t)0;
+   /*
+    * XXX: I dont free up the memory from
+    * malloc_r free_r yet.
+    */
 }
 
 void *malloc (size_t __size)
@@ -181,46 +193,28 @@ void free (void* p)
 
 void *calloc (size_t N, size_t __size)
 {
-   void *p;
+   char *p;
 
    __malloc_lock ();
-   p = m_al (N * __size, AL_HEAP);
-   al_zeropad ((uint8_t*) p, N * __size);
+   p = m_al (N*__size, AL_HEAP);
+   al_zeropad (p, N*__size);
    __malloc_unlock ();
    return p;
 }
 
-void *realloc (void * __r, size_t __size)
+void *realloc (void *__r, size_t __size)
 {
    free (__r);
    return malloc (__size);
 }
-/*
-void *_malloc_r  (struct _reent *, size_t)
-{
 
-}
-void *_calloc_r  (struct _reent *, size_t, size_t)
-{
 
-}
-void _free_r  (struct _reent *, void *)
-{
-
-}
-void *_realloc_r  (struct _reent *, void *, size_t)
-{
-
-}
-*/
-\
 void alloc_init (void)
 {
    uint8_t i;
 
    /*
-    * As you can see in LabBook page 38,
-    * pkernel's stack lives in
+    * pkernel's stack and heap lives in
     *
     *    ----------------                 ---
     *   |                | <- _eram        ^
@@ -228,7 +222,7 @@ void alloc_init (void)
     *   |                |                 |
     *          ...
     *   |                |             pkernel's
-    *   |                |              stack
+    *   |                |
     *    -  -  -  -  -  -                  |
     *   |    Startup's   |                 | Heap
     *   |     stack      | <- pulStack     ,
@@ -242,16 +236,11 @@ void alloc_init (void)
     *   |                | <- _sdata
     *   -----------------
     */
-   uint32_t ps = (uint32_t) & pulStack;
-   uint32_t ed = (uint32_t) & _eram;
-
-   /*
-    *
-    */
-   al[0].mem_ptr = (void*) ps;
+   al[0].mem_ptr = (void*) &pulStack;
    al[0].sz = 0;
    al[0].flag = MA_BOTTOM;
-   al[1].mem_ptr = (void*) ed;
+
+   al[1].mem_ptr = (void*) &_eram;
    al[1].sz = 0;
    al[1].flag = MA_TOP;
 
@@ -261,6 +250,5 @@ void alloc_init (void)
       al[i].mem_ptr = 0;
       al[i].flag = MA_UNUSED;
    }
-   __malloc_unlock ();
 }
 

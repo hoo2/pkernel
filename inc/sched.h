@@ -29,7 +29,6 @@
 #include "proc.h"
 
 int schedule(void);
-void sch_idle_proc(void);
 process_t* sch_alarm (void);
 void sch_add_proc(int pid);
 void sch_remove_proc (int pid);

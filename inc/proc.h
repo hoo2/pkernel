@@ -28,6 +28,7 @@
 
 #include "pkdefs.h"
 #include "alloc.h"
+#include <stddef.h>
 
 #define IDLE_PROC_ID       (0)
 #define TIMESLICE_TICKS    (10)
@@ -50,8 +51,8 @@ uint32_t proc_sel_stack (int pid);
 void     proc_store_stack_pointer (uint32_t sp);
 
 // API to sched.c/h
-exit_t   proc_init (void);
-int      proc_newproc (process_ptr_t fptr, int8_t nice, int8_t fit, size_t mem);
+void     proc_idle(void);
+int      proc_newproc (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
 int      proc_delproc (void);
 void     proc_rst_ticks (int pid);
 void     proc_dec_ticks (int pid);

@@ -22,7 +22,7 @@
  *
  */
 
-#include <ktime.h>
+#include "ktime.h"
 
 clock_t  volatile Ticks;               /* cpu time */
 time_t   volatile Now;                 /* time in unix secs past 1-Jan-70 */

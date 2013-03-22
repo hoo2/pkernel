@@ -79,13 +79,6 @@ int schedule(void)
    return pid;
 }
 
-void sch_idle_proc(void)
-{
-   //proc_set_current_pid(0);
-   while (1);
-}
-
-
 process_t* sch_alarm (void)
 {
    process_t *p=(process_t*)0;

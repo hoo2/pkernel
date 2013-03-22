@@ -28,11 +28,13 @@
 
 #include "pkdefs.h"
 #include "sem.h"
+#include "kcmsis.h"
+#include <stddef.h>
 
 extern void _eram;                        /* End address for ram */
 extern unsigned long pulStack[];
 
-typedef  char *   caddr_t;
+typedef  char *caddr_t;
 
 typedef enum
 {
@@ -57,6 +59,9 @@ void alloc_init (void);
 
 void __malloc_lock (void);    // Spin locks
 void __malloc_unlock (void);
+
+uint8_t al_boot (void);
+void set_al_boot (void);
 
 caddr_t _sbrk ( int incr );
 void *malloc (size_t __size);
