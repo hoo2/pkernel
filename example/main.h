@@ -6,7 +6,7 @@
 #define __main_h__
 
 #include "pkernel.h"
-#include "time.h"
+#include <time.h>
 #include <stdlib.h>
 
 int main (void);

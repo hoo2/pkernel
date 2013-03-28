@@ -5,7 +5,7 @@
 
 sem_t *s;
 
-int task1 (void)
+void task1 (void)
 {
    s = sem_open();
    int *p1, *p2, *p3, *p4;
@@ -15,28 +15,21 @@ int task1 (void)
    {
       t1 = clock();
       p1 = (int*)malloc(20*sizeof(int));
-         wait (s);
       p2 = (int*)malloc(30*sizeof(int));
-         wait (s);
       free (p1);
-         wait (s);
       p3 = (int*)malloc(10*sizeof(int));
-         wait (s);
       free (p2);
-         wait (s);
       p4 = (int*)malloc(40*sizeof(int));
-         wait (s);
       free (p3);
-         wait (s);
       free (p4);
-         wait (s);
+      wait(s);
       t2 = clock();
       if (t2-t1 <= 1)
          sleep (2);
    }
 }
 
-int task2 (void)
+void task2 (void)
 {
    int i=0;
    while (1)
@@ -46,8 +39,17 @@ int task2 (void)
          i=0;
          signal (s);
       }
+      if (time(0) == 2)
+         exit (0);
    }
 }
+
+void task3 (void)
+{
+   while (1);
+}
+
+
 /**
   * @brief  Main program.
   * @param  None
@@ -55,10 +57,11 @@ int task2 (void)
   */
 int main (void)
 {
-   pkernel_boot (320, CLOCK, TICK_FREQ);
+   pkernel_boot ((size_t)320, CLOCK, TICK_FREQ);
 
    pkernel_newprocess (&task1, (size_t)320, 1, 0);
    pkernel_newprocess (&task2, (size_t)320, 1, 0);
+   pkernel_newprocess (&task3, (size_t)320, 1, 0);
 
    pkernel_run ();
    while (1);  // Unreachable.

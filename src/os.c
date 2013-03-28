@@ -29,13 +29,15 @@ time_t   volatile Now = 0;             /* time in unix secs past 1-Jan-70 */
 
 static os_command_t os_command;
 
-/*=============  Interrupt Service Routine  ====================*/
+/*=============  Interrupt Service Routines  ====================*/
 
-/**
-  * @brief  This function handles SysTick.
-  * @param  None
-  * @retval None
-  */
+/*!
+ * \brief This ISR handles SysTick. We update Ticks and Now.
+ * We also consume time from the active process and trigger PendSV.
+ *
+ * \param  None
+ * \retval None
+ */
 void SysTick_Handler(void)
 {
    //Update Exported Counters
@@ -47,21 +49,31 @@ void SysTick_Handler(void)
    if ( !sch_runq_empty () )
       proc_dec_ticks (proc_get_current_pid());
 
-   // Pend OS handler
-   OS_Call ((void*)0, OS_TRIG);
+   // Trigger PendSV
+   __pendsv_trig ();
 }
 
-/**
-  * @brief  This function handles PendSV.
-  * @param  None
-  * @retval None
-  */
+/*!
+ * \brief This ISR handles PendSV. We:
+ * - Save the active process's stack.
+ * - Get the "correct" pid from scheduler
+ * - If needed we do context switching
+ * - Load the stack for the "correct" process
+ * - Return to Process.
+ * (*This mean that the PendSV must handled last by the NVIC*)
+ *
+ * \param  None
+ * \retval None
+ */
 void PendSV_Handler (void)
 {
-	uint32_t reg;
    static uint32_t linkreg=0;
+	uint32_t reg;
+   /*
+    * XXX: linkreg is static so it lives between context switches
+    */
 
-	__ASM volatile ("MOV %0, lr" : "=r" (linkreg));
+	__asm volatile ("MOV %0, lr" : "=r" (linkreg));
 
 	if (os_command.flags)         // Clear wait flags
 	   os_command.flags = 0;
@@ -86,37 +98,76 @@ void PendSV_Handler (void)
 	 */
 	proc_load_ctx ();
 	// Add custom epilogue to return from ISR
-	__ASM volatile ("BX %0" : : "r" (linkreg));
+	__asm volatile ("BX %0" : : "r" (linkreg));
 }
 
-
+/*!
+ * \brief Provide a functionality based on the os_command_enum_t
+ * from pkernel.
+ *
+ * \param p The corresponding process.
+ * \param cmd The command to apply.
+ * \note Thread safe, not reentrant.
+ *
+ * \warning Don't use directly this function. Use it through exit(), sleep() wait()
+ *
+ */
 void OS_Call (process_t *p, os_command_enum_t cmd)
 {
-   // Dispatch command
+   /*
+    * We have to wait any other OS action to finish.
+    * So we wait SysTick and PendSV.
+    */
+   while ( __pendsv_act() || __systick_act() )
+      ;
    switch (cmd)
    {
-      case OS_TRIG:
-         kSCB->ICSR |= kSCB_ICSR_PENDSVSET_Msk;
-         return;
+      case OS_EXIT:
+         sch_exit (p);
+         proc_exit (p);
+         break;
       case OS_SUSPEND:
-         /*
-          * We have to wait any other OS action to finish.
-          * So we wait SysTick and PendSV.
-          */
-         while (kSCB->SHCSR & kSCB_SHCSR_PENDSVACT_Msk
-                || kSCB->SHCSR & kSCB_SHCSR_SYSTICKACT_Msk)
-            ;
          sch_susp_proc (p);
-         os_command.flags |= 0x1 << cmd;
-         kSCB->ICSR |= kSCB_ICSR_PENDSVSET_Msk;
-         while (os_command.flags && (0x1<<cmd))   // Wait PendSV here.
-            ;
-         return;
+         break;
       default:
          return;
    }
+   // Set flags, trigger PendSV and wait.
+   os_command.flags |= 0x1 << cmd;
+   __pendsv_trig ();
+   while (os_command.flags && (0x1<<cmd))
+      ;
+   return;
 }
 
+/*!
+ * \brief This function triggers OS_Call to terminate the process.
+ * Called when a process returns. Can also called from a process
+ * to terminate the process. This function never returns.
+ *
+ * \param  status is discarded. We don't use it
+ * \note Thread safe, not reentrant.
+ */
+void exit (int status)
+{
+   process_t *p = proc_get_current_proc();
+   OS_Call (p, OS_EXIT);
+   while(1);   // for compatibility
+   /*
+    * XXX: status is discarded. We don't use it.
+    */
+}
+
+/*!
+ * \brief This function triggers OS_Call to suspend the process.
+ * A call to this function cause pkernel to suspend the process
+ * immediate without the need for waiting the SysTick. This function
+ * returns when the process resumes / wakes up.
+ *
+ * \param alarm The number of ticks in 1/CLOCKS_PER_SEC before
+ * the process wakes up.
+ * \note Thread safe, not reentrant.
+ */
 void sleep (clock_t alarm)
 {
    process_t *p = proc_get_current_proc ();
@@ -125,13 +176,14 @@ void sleep (clock_t alarm)
    OS_Call (p, OS_SUSPEND);
 }
 
-/*
-   void wait (sem_t *s)
-
-   If the semaphore is positive decreases it,
-   if 0 then suspends the process.
-
-*/
+/*!
+ * \brief This function waits for a semaphore. If the semaphore
+ *  is positive decreases it, if 0 then suspends the process.
+ *
+ * \param  s pointer to semaphore used
+ * \return None
+ * \note Thread safe, not reentrant.
+ */
 void wait (sem_t *s)
 {
    process_t *p;
@@ -146,10 +198,8 @@ void wait (sem_t *s)
       s->val--;
 }
 
-/*
- * void signal (sem_t *s)
- *
- * Increases the semaphores value, but leave
+/*!
+ * \brief Increase the semaphores value, but leave
  * the OS to awake the process.
  */
 void signal (sem_t *s)
@@ -161,20 +211,19 @@ void signal (sem_t *s)
     */
 }
 
-/*
- *  void lock (sem_t *s)
- *
- * If the mutex is positive clears it,
- * if 0 then suspends the process.
+/*!
+ * \brief  This function waits for a mutex. If the mutex is
+ * positive(1) decreases it, if 0 then suspends the process.
+ * \param  s pointer to mutex used
+ * \return None
+ * \note Thread safe, not reentrant.
  */
 __INLINE void lock (sem_t *s){
    return wait(s);
 }
 
 
-/*
- * void unlock (sem_t *m)
- *
+/*!
  * Unlock (by setting high) the semaphore, but leave
  * the OS to awake the process.
 */

@@ -33,29 +33,30 @@
 #define IDLE_PROC_ID       (0)
 #define TIMESLICE_TICKS    (10)
 
+extern void exit (int status);
 
 /*
  * Exported to lib
  */
 // Process Manipulation
-void  proc_set_current_pid(int pid);
-int   proc_get_current_pid(void);
+void  proc_set_current_pid(pid_t pid);
+pid_t proc_get_current_pid(void);
 process_t *proc_get_current_proc(void);
-process_t *proc_get_process(int pid);
+process_t *proc_get_process(pid_t pid);
 
 // API to os.c/h
 void     context_switch(uint32_t s) __attribute__( ( naked ) );
 uint32_t proc_load_ctx(void) __attribute__( ( naked ) );
 uint32_t proc_save_ctx(void) __attribute__( ( naked ) );
-uint32_t proc_sel_stack (int pid);
+uint32_t proc_sel_stack (pid_t pid);
 void     proc_store_stack_pointer (uint32_t sp);
 
 // API to sched.c/h
 void     proc_idle(void);
-int      proc_newproc (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
-int      proc_delproc (void);
-void     proc_rst_ticks (int pid);
-void     proc_dec_ticks (int pid);
+pid_t    proc_newproc (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
+void     proc_exit (process_t *p);
+void     proc_rst_ticks (pid_t pid);
+void     proc_dec_ticks (pid_t pid);
 
 #endif //#ifndef __proc_h__
 

@@ -31,30 +31,43 @@
 #include "kcmsis.h"
 #include <stddef.h>
 
-extern void _eram;                        /* End address for ram */
-extern unsigned long pulStack[];
+extern void _eram;                        /*!< End address for ram provided by ld script. */
+extern unsigned long pulStack[];          /*!< Starting address of the stack provided by ld script. */
 
-typedef  char *caddr_t;
+typedef  char *caddr_t;                   /*!< same as stdlib */
 
+/*!
+ * Allocation table flag type
+ * Mark the type of al[] block.
+ */
 typedef enum
 {
-   MA_BOTTOM=-1, MA_BLOCK, MA_TOP, MA_UNUSED
+   MA_BOTTOM=-1,  /*!< Indicate a starting address block. */
+   MA_BLOCK,      /*!< Indicate a used memory block of heap or stack. */
+   MA_TOP,        /*!< Indicate a anding address block. */
+   MA_UNUSED      /*!< Indicate a free al slot. */
 }al_flag_t;
 
-typedef
-volatile struct
+/*!
+ * Allocation Table item
+ */
+typedef volatile struct
 {
-   void*       mem_ptr;
-   size_t      sz;
-   al_flag_t   flag;
+   void*       mem_ptr;    /*!< Pointer to memory block in ram. */
+   size_t      sz;         /*!< Size of memory in bytes. */
+   al_flag_t   flag;       /*!< The blocks type. \sa al_flag_t */
 }al_t;
 
+/*!
+ * Enumerator to indicate if a memory is going to be for heap or stack
+ */
 typedef enum
 {
    AL_STACK=0, AL_HEAP
 }al_mem_type_t;
 
-void* m_al (size_t sz, al_mem_type_t mt);
+void *m_al (size_t sz, al_mem_type_t mt);
+void m_fr (void* p);
 void alloc_init (void);
 
 void __malloc_lock (void);    // Spin locks

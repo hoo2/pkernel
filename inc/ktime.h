@@ -43,13 +43,13 @@
 #define  _TIME_T_ long                 /* time() */
 #endif
 
-typedef _CLOCK_T_ clock_t;             /* CPU time type */
-typedef _TIME_T_ time_t;               /* date/time in unix secs past 1-Jan-70 type for 68 years*/
+typedef _CLOCK_T_ clock_t;             /*!< CPU time type */
+typedef _TIME_T_ time_t;               /*!< date/time in unix secs past 1-Jan-70 type for 68 years*/
 
-typedef  _CLOCK_T_ kclock_t;           /* The clock freq known by the kernel */
+typedef  _CLOCK_T_ kclock_t;           /*!< The clock freq known by the kernel */
 
-extern clock_t  volatile Ticks;        /* CPU time */
-extern time_t   volatile Now;          /* time in unix secs past 1-Jan-70 */
+extern clock_t  volatile Ticks;        /*!< CPU time */
+extern time_t   volatile Now;          /*!< time in unix secs past 1-Jan-70 */
 
 /* =================== Exported Functions ===================== */
 

@@ -24,12 +24,16 @@
 
 #include "alloc.h"
 
-static al_t al[ALLOC_SIZE];
-static uint8_t malock = 1;    // Don't permit malloc before pkernel boot
-static uint8_t al_boot_f = 0;   // Flag to permit stack allocation before pkernel_run
 
-/*=============  Interrupt Service Routine  ====================*/
+static al_t al[ALLOC_SIZE];      /*!< Allocation table to hold the allocated ram blocks for stack or heap. */
+static uint8_t malock = 1;       /*!< Don't permit malloc before pkernel boot */
+static uint8_t al_boot_f = 0;    /*!< Flag to permit stack allocation before pkernel_run */
 
+/*=============  Static Functions ====================*/
+
+/*!
+ * Fill with zero size @a s after address @a p
+ */
 static void al_zeropad (char *p, size_t s)
 {
    char *zp;
@@ -37,6 +41,9 @@ static void al_zeropad (char *p, size_t s)
       *zp=0;
 }
 
+/*!
+ * Swap al[] entries pointed by @a a1 @a a2
+ */
 static void swap_al (al_t *a1, al_t *a2)
 {
    al_t r = *a1;
@@ -44,6 +51,13 @@ static void swap_al (al_t *a1, al_t *a2)
    *a2 = r;
 }
 
+/*!
+ * Short al[] so it will be like this: BOTTOM < BLOCK < TOP < UNUSED
+ * The BLOCKs are shorted based on address at ram.
+ *
+ * This helps m_al to calculate empty spaces. Every next block is
+ * the flash-neighbor block
+ */
 static void al_short (void)
 {
    uint8_t i;
@@ -68,31 +82,67 @@ static void al_short (void)
    while (!ok);
 }
 
+
+
+
+
+/*===================  Exported Functions ====================*/
+
+/*!
+ * \breif Spin lock to make thread safe the malloc functionality.
+ * \param None
+ * \return None
+ */
 void __malloc_lock (void)
 {
    while (malock == 1)
       ;
    malock = 1;
 }
-
-void __malloc_unlock (void){
+/*!
+ * \breif malloc spin lock's unlock function.
+ * \param None
+ * \return None
+ */
+__INLINE void __malloc_unlock (void){
    malock = 0;
 }
 
+/*!
+ * Get al_boot flag.
+ * al_boot_f = 0 -> pkernel is not yet running.
+ * al_boot_f = 1 -> pkernel is running.
+ */
 __INLINE uint8_t al_boot (void){
    return al_boot_f;
 }
 
+/*!
+ * Set al_boot flag to 1 to indicate a running pkernel.
+ */
 __INLINE void set_al_boot (void){
    al_boot_f = 1;
 }
 
+/*!
+ * \brief Try to find a empty space in both the al[] and the ram, to
+ * allocate the requested memory. It use the smaller available block.
+ * - The memory is aligned in size_t.
+ * - For stack, the return block is placed in the upper memory space
+ * of the available block.
+ * - For heap it is placed in the bottom.
+ *
+ * \param sz Size in bytes to allocate.
+ * \param mt AL_STACK, AL_HEAP
+ * \return Pointer (void*) to allocated memory, or NULL for failure.
+ */
 void *m_al (size_t sz, al_mem_type_t mt)
 {
    int8_t i, slot, r;
    size_t min, asz;
    void* mptr = NULL;
 
+   if (!sz)  return (void*)0;       // Who calls m_al with zero size?
    if ((r=sz%sizeof(size_t)) != 0)  // Alignment to size_t
       sz += sizeof(size_t) - r;
 
@@ -127,28 +177,30 @@ void *m_al (size_t sz, al_mem_type_t mt)
 
    /*
     * Dispatch in two methods.
-    * Stack: Return the tip+1 address of the best match.
-    * Heap:  Return the base address of the best match.
+    * Stack: Return the base address of the best match
+    *        and the block is placed on the upper limit.
+    * Heap:  Return the base address of the best match
+    *        and the block is placed in the bottom limit.
     */
    if (mptr)
    {
-      if (mt == AL_STACK)
-      {
-         al[slot].mem_ptr = mptr + (min - sz);
-         al[slot].sz = sz;
-         mptr = (void*) (al[slot].mem_ptr + sz);
-      }
-      else  // AL_HEAP
-      {
-         al[slot].mem_ptr = mptr;
-         al[slot].sz = sz;
-      }
+      if (mt == AL_STACK)        // Swift stack in the upper space
+         mptr = mptr + (min - sz);
+
+      al[slot].mem_ptr = mptr;
+      al[slot].sz = sz;
       al[slot].flag = MA_BLOCK;
       al_short ();
    }
    return mptr;
 }
 
+/*!
+ * \brief Free up the memory pointed by @a p.
+ *
+ * \param p pointer to memory.
+ * \return None.
+ */
 void m_fr (void* p)
 {
    int8_t i;
@@ -161,8 +213,22 @@ void m_fr (void* p)
          break;
       }
    al_short ();
+   /*
+    * XXX: free must leave the al[] shorted.
+    */
 }
 
+/*!
+ * \brief Tailoring _malloc_r and _free_r.
+ * Allocate or free memory from pkernel using m_al,
+ * as requested by _malloc_r or _free_r.
+ *
+ * \param incr the memory size in bytes.
+ * If incr is positive we allocate memory
+ * if it is negative we free memory.
+ * \return Pointer to allocated memory or NULL for free
+ * \note We don't free up memory from _malloc_r calls yet.
+ */
 caddr_t _sbrk ( int incr )
 {
    if (incr>0)
@@ -170,11 +236,19 @@ caddr_t _sbrk ( int incr )
    else
       return (caddr_t)0;
    /*
-    * XXX: I dont free up the memory from
+    * XXX: I don't free up the memory from
     * malloc_r free_r yet.
     */
 }
 
+/*!
+ * \brief Allocate a size @a __size memory in bytes and return
+ * the address.
+ *
+ * \param __size of the requested memory in bytes.
+ * \return Pointer to allocated memory or NULL on failure.
+ * \note Thread safe, not reentrant.
+ */
 void *malloc (size_t __size)
 {
    void * p;
@@ -184,6 +258,13 @@ void *malloc (size_t __size)
    return p;
 }
 
+/*!
+ * \brief Free up the memory pointed by @a p.
+ *
+ * \param p pointer to memory.
+ * \return None.
+ * \note Thread safe, not reentrant.
+ */
 void free (void* p)
 {
    __malloc_lock ();
@@ -191,6 +272,15 @@ void free (void* p)
    __malloc_unlock ();
 }
 
+/*!
+ * \brief Allocate a number @a N of size @a __size memory in bytes,
+ * clears it and returns the address.
+ *
+ * \param N number of @a __size blocks to allocate.
+ * \param __size of each requested block in bytes.
+ * \return Pointer to allocated memory or NULL on failure.
+ * \note Thread safe, not reentrant.
+ */
 void *calloc (size_t N, size_t __size)
 {
    char *p;
@@ -202,49 +292,65 @@ void *calloc (size_t N, size_t __size)
    return p;
 }
 
+
+/*!
+ * \brief Reallocates the memory pointed by @a __r in to a new size
+ * @a __size in bytes and returns the new address.
+ *
+ * \param __r pointer to previous allocates memory.
+ * \param __size the new requested size in bytes.
+ * \return Pointer to allocated memory or NULL on failure.
+ * \note Thread safe, not reentrant.
+ */
 void *realloc (void *__r, size_t __size)
 {
    free (__r);
    return malloc (__size);
 }
 
+/*!
+ * \brief Initialize pkernel's stack and heap.
+ * This functions reads the _eram and pulStack entries
+ * in ld script and initialize the allocator.
+ *
+ *        ----------------                 ---
+ *       |                | <- _eram        ^
+ *       |                |                 | Stack
+ *       |                |                 |
+ *            ...
+ *       |                |             pkernel's
+ *       |                |
+ *        -  -  -  -  -  -                  |
+ *       |    Startup's   |                 | Heap
+ *       |     stack      | <- pulStack     ,
+ *        ----------------                 ---
+ *       |                | <- _ebss
+ *       |                |
+ *       |                | <- _sbss / _edata
+ *        ----------------
+ *       |                |
+ *       |                |
+ *       |                | <- _sdata
+ *       -----------------
+ *
+ * \param  None
+ * \retval None
+ *
 
+ */
 void alloc_init (void)
 {
    uint8_t i;
 
-   /*
-    * pkernel's stack and heap lives in
-    *
-    *    ----------------                 ---
-    *   |                | <- _eram        ^
-    *   |                |                 | Stack
-    *   |                |                 |
-    *          ...
-    *   |                |             pkernel's
-    *   |                |
-    *    -  -  -  -  -  -                  |
-    *   |    Startup's   |                 | Heap
-    *   |     stack      | <- pulStack     ,
-    *    ----------------                 ---
-    *   |                | <- _ebss
-    *   |                |
-    *   |                | <- _sbss / _edata
-    *    ----------------
-    *   |                |
-    *   |                |
-    *   |                | <- _sdata
-    *   -----------------
-    */
    al[0].mem_ptr = (void*) &pulStack;
    al[0].sz = 0;
    al[0].flag = MA_BOTTOM;
 
-   al[1].mem_ptr = (void*) &_eram;
+   al[1].mem_ptr = (void*) &_eram;  // Ignore warning. It's OK :)
    al[1].sz = 0;
    al[1].flag = MA_TOP;
 
-   // Init the rest al table to NULL
+   // Init the rest al[] table to NULL
    for (i=2; i<ALLOC_SIZE; ++i)
    {
       al[i].mem_ptr = 0;

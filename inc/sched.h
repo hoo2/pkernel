@@ -28,16 +28,17 @@
 
 #include "proc.h"
 
-int schedule(void);
+pid_t schedule(void);
 process_t* sch_alarm (void);
-void sch_add_proc(int pid);
-void sch_remove_proc (int pid);
+void sch_add_proc(pid_t pid);
+void sch_remove_proc (pid_t pid);
 
 /* list operations */
 void sch_list_ins_back(proc_list_t *list, process_t *proc);
 void sch_list_ins_front(proc_list_t *list, process_t *proc);
 void sch_list_remove(proc_list_t *list, process_t *proc);
 void sch_susp_proc (process_t *p);
+void sch_exit (process_t *p);
 int sch_runq_empty (void);
 int sch_susq_empty (void);
 int sch_empty_list (proc_list_t *l);

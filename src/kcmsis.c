@@ -24,18 +24,15 @@
 
 #include "kcmsis.h"
 
-/* ###################  Compiler specific Intrinsics  ########################### */
+/* ===============  Compiler specific Intrinsics  =============== */
 
 
 #if defined ( __CC_ARM   ) /*------------------RealView Compiler -----------------*/
 /* ARM armcc specific functions */
 
-/**
- * @brief  Set the Base Priority value
- *
- * @param  basePri  BasePriority
- *
- * Set the base priority register
+/*!
+ * \brief  Set the Base Priority value
+ * \param  basePri  BasePriority
  */
 __ASM void __kset_BASEPRI(uint32_t basePri)
 {
@@ -47,12 +44,9 @@ __ASM void __kset_BASEPRI(uint32_t basePri)
 /* IAR iccarm specific functions */
 #pragma diag_suppress=Pe940
 
-/**
- * @brief  Set the Base Priority value
- *
- * @param  basePri  BasePriority
- *
- * Set the base priority register
+/*!
+ * \brief  Set the Base Priority value
+ * \param  basePri  BasePriority
  */
 __ASM void __kset_BASEPRI(uint32_t basePri)
 {
@@ -65,16 +59,15 @@ __ASM void __kset_BASEPRI(uint32_t basePri)
 #elif (defined (__GNUC__)) /*------------------ GNU Compiler ---------------------*/
 /* GNU gcc specific functions */
 
-/**
- * @brief  Set the Base Priority value
- *
- * @param  basePri  BasePriority
- *
- * Set the base priority register
+/*!
+ * \brief Set the Base Priority value.
+ * \param value  BasePriority
  */
 void __kset_BASEPRI(uint32_t value)
 {
-  __ASM volatile ("MSR basepri, %0" : : "r" (value) );
+  __ASM volatile (
+        "MSR basepri, %0   \n\t"
+        "BX lr             \n\t" : : "r" (value) );
 }
 
 #elif (defined (__TASKING__)) /*------------------ TASKING Compiler ---------------------*/

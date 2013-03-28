@@ -27,40 +27,42 @@
 
 #ifdef __cplusplus
  extern "C" {
-#endif 
+#endif
 
 #include <stdint.h>
 #include "ktime.h"
 
 /* =================== User Defines ===================== */
 
-#define  SYSTEM_RTT_MAXSIZE               (5)   // Maximum number or real time tasks
-#define  MAX_PROC                         (8)
-#define  MAX_SEMAPHORES                   (6)
-#define  MAX_HEAP_ALLOCS                  (8)
+#define  MAX_PROC                         (8)   /*!< The maximum number of Process supported by pkernel. */
+#define  MAX_SEMAPHORES                   (12)  /*!< The maximum number of Semaphores supported by pkernel.*/
+#define  MAX_HEAP_ALLOCS                  (20)  /*!< The maximum number of Heap allocations supported by pkernel.*/
+
+
+
+
 
 /* ================     General Defines       ======================*/
-    
 #define  ALLOC_SIZE                       (MAX_HEAP_ALLOCS+MAX_PROC)
-
 
 
 
 
 /* =================== Data types ===================== */
 
-typedef enum
-{
-   EXIT_OK,
-   EXIT_ERROR
-}exit_t;
-
+/*!
+ * Semaphore data type
+ */
 typedef volatile struct
 {
-   int val;
-   uint8_t en:1;
+   int val;          /*!< Semaphore value. */
+   uint8_t en:1;     /*!< Semaphore enable flag. */
 }sem_t;
 
+/*!
+ * Hardware stack frame.
+ * This is a clone of the stack frame used by NVIC
+ */
 typedef struct
 {
    uint32_t r0;
@@ -73,6 +75,10 @@ typedef struct
    uint32_t psr;
 }hw_stack_frame_t;
 
+/*!
+ * Software stack frame.
+ * This is a clone of the stack frame used by pkernel.
+ */
 typedef struct
 {
    uint32_t r4;
@@ -86,31 +92,40 @@ typedef struct
 }sw_stack_frame_t;
 
 
+/*!
+ * Task Control Block
+ */
 typedef struct
 {
-   uint32_t sp_tip;
-   uint32_t sp;
+   uint32_t sp_tip;     /*!< Memory pointer returned by allocator. */
+   uint32_t sp;         /*!< Current SP. */
 }proc_tcb_t;
 
+typedef int pid_t;      /*!< Process ID type. */
+/*!
+ * Process data type
+ */
 typedef struct process
 {
-   int            id;      // the process id
-   int8_t         is;      // Used as flag that process exists.
-   int            exit_status;
+   pid_t          id;      /*!< The process id. */
+   int8_t         is;      /*!< process exists flag. */
 
    int            ticks_left;
-   int8_t         nice;    // gives priority level -10..10
-   int8_t         fit;     // gives time slice level -10..10
+   int8_t         nice;    /*!< Gives priority level -10..10. */
+   int8_t         fit;     /*!< Gives time slice level -10..10. */
 
-   clock_t        alarm;   // If suspend this is the alarm
-   sem_t          *sem;    // If suspend this is the semaphore
+   clock_t        alarm;   /*!< If suspend this is the alarm. */
+   sem_t          *sem;    /*!< If suspend this is the semaphore. */
    proc_tcb_t     tcb;
-   
-   struct process *next, *prev;  // Used for both runq and susq
+
+   struct process *next, *prev;  /*!< Used by runq and susq lists. */
 }process_t;
 
-typedef int (*process_ptr_t) (void);
+typedef void (*process_ptr_t) (void);  /*!< The Process Function type. */
 
+/*!
+ * Linked list type
+ */
 typedef struct proc_list
 {
    process_t *head;

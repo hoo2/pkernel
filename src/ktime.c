@@ -24,35 +24,60 @@
 
 #include "ktime.h"
 
-clock_t  volatile Ticks;               /* cpu time */
-time_t   volatile Now;                 /* time in unix secs past 1-Jan-70 */
+clock_t  volatile Ticks;               /*!< CPU time */
+time_t   volatile Now;                 /*!< Time in unix secs past 1-Jan-70 */
 
-static kclock_t  volatile kclock;      /* the kernel's "knowledge" of cpu clock */
-static kclock_t  volatile os_freq;     /* the kernels frequency */
+static kclock_t  volatile kclock;      /*!< The kernel's "knowledge" of cpu clock */
+static kclock_t  volatile os_freq;     /*!< The kernels frequency */
 
-__INLINE kclock_t kget_os_freq (void){
-   return os_freq;
-}
 
-__INLINE void kset_os_freq (kclock_t f){
-   os_freq = f;
-}
 
-__INLINE kclock_t kget_clock (void){
-   return kclock;
-}
-
-__INLINE void kset_clock (kclock_t clk){
-   kclock = clk;
-}
-
+/*!
+ * Initialize and Start the SysTick with the kclock and os_freq
+ */
 void kinit_SysTick (void)
 {
-   /* Time base configuration and enable */
+   // Time base configuration and enable
    kSysTick->LOAD = (kclock / 8) / os_freq;
    kSysTick->CTRL |= kSysTick_CTRL_ENABLE_Msk + kSysTick_CTRL_TICKINT_Msk;
 }
 
+/*!
+ * \brief Get the pkernel's knowledge of os frequency.
+ * \return OS Frequency
+ */
+__INLINE kclock_t kget_os_freq (void){
+   return os_freq;
+}
+
+/*!
+ * \brief Set the pkernel's os frequency (Update his knowledge).
+ * \param f OS Frequency.
+ */
+__INLINE void kset_os_freq (kclock_t f){
+   os_freq = f;
+}
+
+/*!
+ * \brief Get the pkernel's knowledge of CPU frequency.
+ * \return CPU Frequency
+ */
+__INLINE kclock_t kget_clock (void){
+   return kclock;
+}
+
+/*!
+ * \brief Set the pkernel's knowledge of CPU freq.
+ * \param f CPU Frequency.
+ */
+__INLINE void kset_clock (kclock_t clk){
+   kclock = clk;
+}
+
+/*!
+ * \brief Reconfigure the SysTick with the kclock and os_freq
+ * \warning Use kset_os_freq() and kset_clock() before.
+ */
 void kupdate_SysTick (void)
 {
    /* Time base configuration */
@@ -60,26 +85,31 @@ void kupdate_SysTick (void)
 }
 
 
-/* Determines the processor time used.
- * Returns: the implementation's best approximation to the processor time
- *          used by the program since program invocation. The time in
- *          seconds is the value returned divided by the value of the macro
- *          CLK_TCK or CLOCKS_PER_SEC
+/*!
+ * \brief Determines the processor time used.
+ * Returns the implementation's best approximation to the processor time
+ * used by the program since program invocation. The time in
+ * seconds is the value returned divided by the value of the macro
+ * CLK_TCK or CLOCKS_PER_SEC
+ *
+ * \param None
+ * \return Current value of Ticks \sa Ticks
  */
-
 __INLINE clock_t clock (void)
 {
    return (clock_t) Ticks;
 }
 
-/*
- * Determines the current calendar time. The encoding of the value is
- * in unix secs past 1-Jan-70.
- * Returns: the implementations best approximation to the current calendar
- *          time. If timer is not a null pointer, the return value
- *          is also assigned to the object it points to.
+/*!
+ * \brief Determines the current calendar time. The encoding of the value is
+ * in unix secs past 1-Jan-70. Returns the implementations best approximation
+ * to the current calendar time. If timer is not a null pointer, the return value
+ * is also assigned to the object it points to.
+ *
+ * \param timer Pointer to time_t struct
+ * \return Current value of Now \sa Now
  */
-time_t time (time_t * timer)
+time_t time (time_t *timer)
 {
    if (timer)
       *timer = (time_t)Now;

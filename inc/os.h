@@ -32,40 +32,65 @@
 #include "kcmsis.h"
 #include "ktime.h"
 
+/*!
+ * Data structure used when a OS_Call is waiting the PendSV.
+ *
+ * XXX: We can "see" the request type when we are inside the PendSV
+ * but we don't do anything for that yet.
+ */
 typedef volatile union
 {
    struct
    {
-      uint8_t  os       :1;
+      uint8_t  exit     :1;
       uint8_t  suspend  :1;
       uint8_t  res      :6;
    }flag;
    uint8_t  flags;
 }os_command_t;
 
+/*!
+ * OS command used in OS_Call to pass the requested functionality
+ * This provides a OS Call List.
+ *
+ * \sa OS_Call
+ */
 typedef enum
 {
-   OS_TRIG=0, OS_SUSPEND
+   OS_EXIT=0,     /*!< Indicates termination request of the current process. */
+   OS_SUSPEND,    /*!< Indicates suspend request of the current process. */
 }os_command_enum_t;
 
 /*
  * XXX: Do not change these values. OS runs in the
  * lowest priority level and PendSV is 15, so it always
- * run last and call BX 0xFFFFFFF9 to return in process.
+ * run last and call BX 0xFFFFFFF9 to return in process,
  * NOT in ISR.
  */
 #define OS_PENDSV_PRI      (0x0F)
 #define OS_SYSTICK_PRI     (0x0E)
 
-#define OS_HALT_ISR()      (__kset_BASEPRI (OS_SYSTICK_PRI))
-#define OS_RESUME_ISR()    (__kset_BASEPRI (OS_SYSTICK_PRI))
+#define __os_halt_ISR()    (__kset_BASEPRI (OS_SYSTICK_PRI))
+#define __os_resume_ISR()  (__kset_BASEPRI (0))
 
+#define __pendsv_act()     (kSCB->SHCSR & kSCB_SHCSR_PENDSVACT_Msk)
+#define __systick_act()    (kSCB->SHCSR & kSCB_SHCSR_SYSTICKACT_Msk)
+
+#define __pendsv_trig()    (kSCB->ICSR |= kSCB_ICSR_PENDSVSET_Msk)
+
+/*
+ * Exported Functions for inner use.
+ */
 void SysTick_Handler(void);// __attribute__( ( naked ) );
 void PendSV_Handler(void) __attribute__( ( naked ) );
 void init_timer (void);
 
 void OS_Call (process_t *p, os_command_enum_t cmd);
 
+/*
+ * Exported Functions for userland
+ */
+void exit (int status);
 void sleep (clock_t t);
 void wait (sem_t *s);
 void signal (sem_t *s);

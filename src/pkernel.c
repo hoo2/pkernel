@@ -24,59 +24,90 @@
 
 #include "pkernel.h"
 
-
-exit_t pkernel_newprocess (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
+/*!
+ * \brief Create a new process. Try to allocate memory and proc space.
+ * On success returns the pid of the new process, else returns 0.
+ *
+ * \param fptr Pointer to process function.
+ * \param mem The size of process stack in bytes.
+ * \param nice The nice ratio (-10 .. 10) of the process.
+ * \param fit The fit (-10 .. 10) ratio of the process.
+ * \return the process pid
+ * \note Use enough memory space for OS ISRs to.
+ *
+ */
+pid_t pkernel_newprocess (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
 {
-   int pid;
-   OS_HALT_ISR();
+   pid_t pid = 0;
+
+   __os_halt_ISR();
    pid = proc_newproc(fptr, mem, nice, fit);
    if (pid != -1) // Success
-   {
       sch_add_proc (pid);
-      OS_RESUME_ISR();
-      return EXIT_OK;
-   }
-   OS_RESUME_ISR();
-   return EXIT_ERROR;
+
+   __os_resume_ISR();
+   return pid;
 }
 
-exit_t  pkernel_boot (size_t __kmsize, kclock_t clk, kclock_t os_f)
+/*!
+ * \brief Boot the kernel.
+ * - Set priorities
+ * - Set clock
+ * - Set os frequency,
+ * - Start allocator
+ * - Create the idle process. Allocator though will
+ * not give heap though before pkernel_run().
+ *
+ * \param __kmsize The pkernels size (aka the idle process stack size).
+ * \param clk The CPU clock used by application.
+ * \param os_f The OS freq requested by application.
+ *
+ * \return 0(proc_idle's pid) on success.
+ */
+int pkernel_boot (size_t __kmsize, kclock_t clk, kclock_t os_f)
 {
+   pid_t pid;
+
    kSetPriority(PendSV_IRQn, OS_PENDSV_PRI);
    kSetPriority(SysTick_IRQn, OS_SYSTICK_PRI);
 
    kset_clock (clk);    // Update kernel's knowledge for clocking
    kset_os_freq (os_f);
    alloc_init ();       // Init the Stack allocation table.
+
    // Make the idle proc
-   proc_newproc ((process_ptr_t)&proc_idle, __kmsize, 0, 0);
+   pid = proc_newproc ((process_ptr_t)&proc_idle, __kmsize, 0, 0);
    /*
-    * We make sure that we are outside off ANY process (pid = -1)
-    * so the idle's proc[0].tcb.sp remains untouched by
-    * PendSV until our first context_switch from idle.
+    * XXX: We make sure that we are outside off ANY process (cur_pid=-1)
+    * so the idle's proc[0].tcb.sp remains untouched by PendSV until
+    * our first context_switch from idle.
     */
    proc_set_current_pid(-1);
-   return EXIT_OK;
+   return (int)pid; // Must be 0 (idle's pid)
 }
 
+/*!
+ * \brief Start the kernel's scheduler and never returns.
+ * - Permit malloc in the kernel's heap. This destroys the first stack.
+ * - Set boot flag so new process will wait for __malloc_lock
+ * - Triggers the first context_switch.
+ */
 void pkernel_run (void)
 {
    kinit_SysTick (); // Configure and start SysTick
 
    /*
-    * Its now safe to:
-    * - Permit malloc in the kernel's heap. This destroys the first stack
-    * - Set boot flag so new process will wait for __malloc_lock
-    * - OS_Call for the first context_switch
+    * We have now SysTick, so we Permit malloc, set boot flag and trigger PendSV
+    * for the first context_switch.
     */
    __malloc_unlock ();
    set_al_boot ();
-   OS_Call ((void*)0, OS_TRIG);  // PendSV request
+   __pendsv_trig();  // PendSV request
    while (1)   // Stay here until OS starts.
       ;
    /*
     * XXX: The kernel never returns to this thread again.
-    * If there is no process it will force the proc_idle().
+    * If there is no process to run it will force the proc_idle().
     * proc_idle() has its own stack (a.k.a kernel's stack) by
     * pkernel_boot (KERNELS_SIZE, clk, os_f) call.
     */

@@ -41,16 +41,16 @@
 #endif
 
 
-/**
+/*!
  * IO definitions
  *
  * define access restrictions to peripheral registers
  */
 
 #ifdef __cplusplus
-  #define     __I     volatile                /*!< defines 'read only' permissions      */
+#define     __I     volatile                /*!< defines 'read only' permissions      */
 #else
-  #define     __I     volatile const          /*!< defines 'read only' permissions      */
+#define     __I     volatile const          /*!< defines 'read only' permissions      */
 #endif
 #define     __O     volatile                  /*!< defines 'write only' permissions     */
 #define     __IO    volatile                  /*!< defines 'read / write' permissions   */
@@ -67,6 +67,9 @@
 #define  SysTick_IRQn      (-1)
 
 
+/*!
+ * struct to access SCB registers
+ */
 typedef struct
 {
   __I  uint32_t CPUID;                        /*!< Offset: 0x00  CPU ID Base Register                                  */
@@ -110,7 +113,9 @@ typedef struct
 #define kSCB_SHCSR_SYSTICKACT_Msk           (1ul << kSCB_SHCSR_SYSTICKACT_Pos)              /*!< SCB SHCSR: SYSTICKACT Mask */
 
 
-
+/*!
+ * struct to access SysTick registers
+ */
 typedef struct
 {
   __IO uint32_t CTRL;                         /*!< Offset: 0x00  SysTick Control and Status Register */
@@ -205,21 +210,21 @@ void __kset_BASEPRI(uint32_t value)  __attribute__( ( naked ) );
 }*/
 #endif
 
-/* ##########################   NVIC functions  #################################### */
+/*  ==================   NVIC functions  ================== */
 
 
 
-/**
- * @brief  Set the priority for an interrupt
- *
- * @param  IRQn      The number of the interrupt for set priority
- * @param  priority  The priority to set
- *
+/*!
+ * \brief  Set the priority for an interrupt
  * Set the priority for the specified interrupt. The interrupt
  * number can be positive to specify an external (device specific)
  * interrupt, or negative to specify an internal (core) interrupt.
  *
  * Note: The priority cannot be set for every core interrupt.
+ *
+ * \param  IRQn      The number of the interrupt for set priority
+ * \param  priority  The priority to set
+ *
  */
 static __INLINE void kSetPriority(int32_t IRQn, uint32_t priority)
 {
@@ -228,10 +233,10 @@ static __INLINE void kSetPriority(int32_t IRQn, uint32_t priority)
 }
 
 
-/* ##################################    Reset function  ############################################ */
+/* ==================    Reset function  ================== */
 
-/**
- * @brief  Initiate a system reset request.
+/*
+ * \brief  Initiate a system reset request.
  *
  * Initiate a system reset request to reset the MCU
  */
