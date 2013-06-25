@@ -30,13 +30,13 @@
 #endif
 
 #include <stdint.h>
-#include "ktime.h"
+#include <ktime.h>
+#include <stddef.h>
 
 /* =================== User Defines ===================== */
 
-#define  MAX_PROC                         (8)   /*!< The maximum number of Process supported by pkernel. */
-#define  MAX_SEMAPHORES                   (12)  /*!< The maximum number of Semaphores supported by pkernel.*/
-#define  MAX_HEAP_ALLOCS                  (20)  /*!< The maximum number of Heap allocations supported by pkernel.*/
+#define  MAX_PROC                (0x10)   /*!< The maximum number of Process supported by pkernel. */
+#define  MAX_HEAP_ALLOCS         (0x20)   /*!< The maximum number of Heap allocations supported by pkernel.*/
 
 
 
@@ -56,7 +56,6 @@
 typedef volatile struct
 {
    int val;          /*!< Semaphore value. */
-   uint8_t en:1;     /*!< Semaphore enable flag. */
 }sem_t;
 
 /*!
@@ -102,13 +101,19 @@ typedef struct
 }proc_tcb_t;
 
 typedef int pid_t;      /*!< Process ID type. */
+
+typedef void (*process_ptr_t) (void);  /*!< The Process Function type. */
+
 /*!
  * Process data type
  */
 typedef struct process
 {
    pid_t          id;      /*!< The process id. */
+   process_ptr_t  fptr;    /*!< The function where the process came from */
+
    int8_t         is;      /*!< process exists flag. */
+   uint8_t        pr;      /*!< Privilege flag */
 
    int            ticks_left;
    int8_t         nice;    /*!< Gives priority level -10..10. */
@@ -121,8 +126,6 @@ typedef struct process
    struct process *next, *prev;  /*!< Used by runq and susq lists. */
 }process_t;
 
-typedef void (*process_ptr_t) (void);  /*!< The Process Function type. */
-
 /*!
  * Linked list type
  */
@@ -131,6 +134,33 @@ typedef struct proc_list
    process_t *head;
    process_t *tail;
 }proc_list_t;
+
+/*!
+ * Type for cron list
+ */
+typedef struct cron
+{
+   process_ptr_t  fptr;
+   size_t         ms;
+   int8_t         nice, fit;
+   uint8_t        pr;
+   time_t         at;
+   time_t         every;
+   struct cron    *prev, *next;
+}cron_t;
+
+typedef void (*micronfun_t) (void);
+   /*!< Pointer to void function (void) to use with cron */
+
+/*!
+ * Type for micron list
+ */
+typedef struct micron
+{
+   micronfun_t    fptr;
+   clock_t        every;
+   struct micron  *prev, *next;
+}micron_t;
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@
  *
  */
 
-#include "pkernel.h"
+#include <pkernel.h>
 
 /*!
  * \brief Create a new process. Try to allocate memory and proc space.
@@ -36,7 +36,7 @@
  * \note Use enough memory space for OS ISRs to.
  *
  */
-pid_t pkernel_newprocess (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
+pid_t knew (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
 {
    pid_t pid = 0;
 
@@ -64,19 +64,19 @@ pid_t pkernel_newprocess (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fi
  *
  * \return 0(proc_idle's pid) on success.
  */
-int pkernel_boot (size_t __kmsize, kclock_t clk, kclock_t os_f)
+int kinit (size_t kmsize, clock_t clk, clock_t os_f)
 {
    pid_t pid;
 
-   kSetPriority(PendSV_IRQn, OS_PENDSV_PRI);
-   kSetPriority(SysTick_IRQn, OS_SYSTICK_PRI);
+   kSetPriority(kPendSV_IRQn, OS_PENDSV_PRI);
+   kSetPriority(kSysTick_IRQn, OS_SYSTICK_PRI);
 
-   kset_clock (clk);    // Update kernel's knowledge for clocking
-   kset_os_freq (os_f);
+   set_clock (clk);     // Set kernel's knowledge for clocking and freq
+   set_freq (os_f);
    alloc_init ();       // Init the Stack allocation table.
 
    // Make the idle proc
-   pid = proc_newproc ((process_ptr_t)&proc_idle, __kmsize, 0, 0);
+   pid = proc_newproc ((process_ptr_t)&proc_idle, kmsize, 0, 0);
    /*
     * XXX: We make sure that we are outside off ANY process (cur_pid=-1)
     * so the idle's proc[0].tcb.sp remains untouched by PendSV until
@@ -92,7 +92,7 @@ int pkernel_boot (size_t __kmsize, kclock_t clk, kclock_t os_f)
  * - Set boot flag so new process will wait for __malloc_lock
  * - Triggers the first context_switch.
  */
-void pkernel_run (void)
+void krun (void)
 {
    kinit_SysTick (); // Configure and start SysTick
 
@@ -106,9 +106,10 @@ void pkernel_run (void)
    while (1)   // Stay here until OS starts.
       ;
    /*
-    * XXX: The kernel never returns to this thread again.
+    * \info
+    * The kernel will not return to this thread again.
     * If there is no process to run it will force the proc_idle().
     * proc_idle() has its own stack (a.k.a kernel's stack) by
-    * pkernel_boot (KERNELS_SIZE, clk, os_f) call.
+    * kinit (KERNELS_SIZE, clk, os_f) call.
     */
 }

@@ -22,7 +22,7 @@
  *
  */
 
-#include "proc.h"
+#include <proc.h>
 
 /*!
  * Hold the processes. pkernel creates a process in the first available slot in proc[].
@@ -113,7 +113,7 @@ void proc_store_stack_pointer (uint32_t sp)
  * \brief Set current pid.
  * \param The pid to set.
  */
-__INLINE void proc_set_current_pid (pid_t pid){
+inline void proc_set_current_pid (pid_t pid){
    cur_pid = last_pid = pid;
 }
 
@@ -121,8 +121,22 @@ __INLINE void proc_set_current_pid (pid_t pid){
  * \brief Get current pid.
  * \return The current pid.
  */
-__INLINE pid_t proc_get_current_pid (void){
+inline pid_t proc_get_current_pid (void){
    return cur_pid;
+}
+
+/*!
+ * \brief Search for a process with the function pointer.
+ * \return pid or -1 if there is none.
+ */
+pid_t proc_search_pid (process_ptr_t fptr)
+{
+   int i;
+
+   for (i=0 ; i<MAX_PROC ; ++i)
+      if (proc[i].is && proc[i].fptr == fptr)
+         return proc[i].id;
+   return -1;
 }
 
 /*!
@@ -230,6 +244,7 @@ pid_t proc_newproc (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
    /* prepare the process before put it into runq */
    proc[pid].tcb.sp_tip = (uint32_t) pm;
    proc[pid].id = pid;
+   proc[pid].fptr = fptr;
    proc[pid].is = 1;
    proc[pid].nice = nice;
    proc[pid].fit = fit;

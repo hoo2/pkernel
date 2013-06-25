@@ -17,12 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
- * Date:       03/013
+ * Date:       03/2013
  * Version:
  *
  */
 
-#include "os.h"
+#include <os.h>
 
 clock_t  volatile Ticks = 0;           /* cpu time */
 time_t   volatile Now = 0;             /* time in unix secs past 1-Jan-70 */
@@ -40,12 +40,22 @@ static os_command_t os_command;
  */
 void SysTick_Handler(void)
 {
-   //Update Exported Counters
+   /*
+    * Update Exported Counters and
+    * call cron and micron.
+    */
    ++Ticks;
-	if ( !(Ticks % kget_os_freq ()) )
-	   ++Now;
+   micron ();
+   if ( !(Ticks % get_freq ()))
+   {
+      ++Now;
+      cron ();
+   }
+   // In case of cron stretching call cron() continuously.
+   if (cron_stretching())
+      cron ();
 
-	// If we have process in runq consume time of it.
+   // If we have process in runq consume time of it.
    if ( !sch_runq_empty () )
       proc_dec_ticks (proc_get_current_pid());
 
@@ -54,13 +64,13 @@ void SysTick_Handler(void)
 }
 
 /*!
- * \brief This ISR handles PendSV. We:
+ * \brief This ISR handles PendSV. Actions:
  * - Save the active process's stack.
  * - Get the "correct" pid from scheduler
- * - If needed we do context switching
+ * - If needed, context switching
  * - Load the stack for the "correct" process
  * - Return to Process.
- * (*This mean that the PendSV must handled last by the NVIC*)
+ * *** This means that the PendSV must handled last by the NVIC ***
  *
  * \param  None
  * \retval None
@@ -68,37 +78,35 @@ void SysTick_Handler(void)
 void PendSV_Handler (void)
 {
    static uint32_t linkreg=0;
-	uint32_t reg;
+   uint32_t reg;
+   // linkreg is static so it lives between context switches
+
+   __asm volatile ("MOV %0, lr" : "=r" (linkreg));
+
+   if (os_command.flags)         // Clear wait flags
+      os_command.flags = 0;
    /*
-    * XXX: linkreg is static so it lives between context switches
+    * At this point NVIC has pushed the hw_stack_frame
+    * We push lr and sw_stack_frame, and save the sp of it to
+    * proc[].tcb.sp
     */
-
-	__asm volatile ("MOV %0, lr" : "=r" (linkreg));
-
-	if (os_command.flags)         // Clear wait flags
-	   os_command.flags = 0;
-	/*
-	 * At this point NVIC has pushed the hw_stack_frame
-	 * We push lr and sw_stack_frame, and save the sp of it to
-	 * proc[].tcb.sp
-	 */
-	reg = proc_save_ctx ();
-	proc_store_stack_pointer (reg);
-	/*
-	 * Get from scheduler the pid to run and check
-	 * if we have to change stack.
-	 */
-	reg = schedule ();
-	reg = proc_sel_stack (reg);
-	if (reg)
-		context_switch (reg);
-	/*
-	 * Load the sw_stack_fram of the process to run.
-	 * The NVIC will load the hw_stack_frame.
-	 */
-	proc_load_ctx ();
-	// Add custom epilogue to return from ISR
-	__asm volatile ("BX %0" : : "r" (linkreg));
+   reg = proc_save_ctx ();
+   proc_store_stack_pointer (reg);
+   /*
+    * Get from scheduler the pid to run and check
+    * if we have to change stack.
+    */
+   reg = schedule ();
+   reg = proc_sel_stack (reg);
+   if (reg)
+      context_switch (reg);
+   /*
+    * Load the sw_stack_frame of the process to run.
+    * The NVIC will load the hw_stack_frame.
+    */
+   proc_load_ctx ();
+   // Add custom epilogue to return from ISR
+   __asm volatile ("BX %0" : : "r" (linkreg));
 }
 
 /*!
@@ -154,7 +162,7 @@ void exit (int status)
    OS_Call (p, OS_EXIT);
    while(1);   // for compatibility
    /*
-    * XXX: status is discarded. We don't use it.
+    * \Note status is discarded. We don't use it.
     */
 }
 
@@ -206,7 +214,7 @@ void signal (sem_t *s)
 {
    ++s->val;
    /*
-    * XXX:If value is positive we leave next tick's
+    * \Note If value is positive we leave next tick's
     * scheduler to awake the related process.
     */
 }
@@ -218,7 +226,7 @@ void signal (sem_t *s)
  * \return None
  * \note Thread safe, not reentrant.
  */
-__INLINE void lock (sem_t *s){
+inline void lock (sem_t *s){
    return wait(s);
 }
 
@@ -232,7 +240,7 @@ void unlock (sem_t *m)
    if (++m->val > 1) // Binary semaphore
       m->val=1;
    /*
-    * XXX:If value is positive we leave next tick's
+    * \Note If value is positive we leave next tick's
     * scheduler to awake the related process.
     */
 }

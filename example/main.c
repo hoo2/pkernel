@@ -5,27 +5,47 @@
 
 sem_t *s;
 
+void task1 (void);
+void task2 (void);
+void task3 (void);
+void serv (void);
+
 void task1 (void)
 {
    s = sem_open();
-   int *p1, *p2, *p3, *p4;
+   /*
+    * Safe to put it here task1
+    * defined first --> called first
+    */
+   int cf=0, *p1, *p2, *p3, *p4;
    clock_t t1, t2;
+
+   p1 = (int*)malloc(20*sizeof(int));
+   p2 = (int*)malloc(30*sizeof(int));
+   free (p1);
+   p3 = (int*)malloc(10*sizeof(int));
+   free (p2);
+   p4 = (int*)malloc(40*sizeof(int));
+   free (p3);
+   free (p4);
 
    while (1)
    {
       t1 = clock();
-      p1 = (int*)malloc(20*sizeof(int));
-      p2 = (int*)malloc(30*sizeof(int));
-      free (p1);
-      p3 = (int*)malloc(10*sizeof(int));
-      free (p2);
-      p4 = (int*)malloc(40*sizeof(int));
-      free (p3);
-      free (p4);
-      wait(s);
+
+      if (!cf)
+      {
+         crontab(&task3, 320, 0, 0, 1, 3, 10);
+         //crontab_r (&task3);      // To disable
+
+         microntab(serv, 30);
+         //microntab_r(serv);       // To disable
+         cf = 1;
+      }
+      wait(s);    // Suspend if no s
       t2 = clock();
       if (t2-t1 <= 1)
-         sleep (2);
+         sleep (2);  // Suspend for 2 ticks
    }
 }
 
@@ -46,9 +66,18 @@ void task2 (void)
 
 void task3 (void)
 {
+   int i;
+   for (i=0 ; i<15000 ; ++i)
+      ;
    while (1);
 }
 
+void serv (void)
+{
+   int i;
+   for (i=0 ; i<10 ; ++i)
+      ;
+}
 
 /**
   * @brief  Main program.
@@ -57,12 +86,12 @@ void task3 (void)
   */
 int main (void)
 {
-   pkernel_boot ((size_t)320, CLOCK, TICK_FREQ);
+   kinit ((size_t)320, CLOCK, TICK_FREQ);
 
-   pkernel_newprocess (&task1, (size_t)320, 1, 0);
-   pkernel_newprocess (&task2, (size_t)320, 1, 0);
-   pkernel_newprocess (&task3, (size_t)320, 1, 0);
+   knew (&task1, (size_t)320, 0, 0);
+   knew (&task2, (size_t)320, 1, 0);
+   //knew (&task3, (size_t)320, 1, 0);
 
-   pkernel_run ();
+   krun ();
    while (1);  // Unreachable.
 }

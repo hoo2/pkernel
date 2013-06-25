@@ -61,10 +61,10 @@
  *                 Register Abstraction
  ******************************************************************************/
 
-#define __NVIC_PRIO_BITS   (4)
+#define __kNVIC_PRIO_BITS     (4)
 
-#define  PendSV_IRQn       (-2)
-#define  SysTick_IRQn      (-1)
+#define  kPendSV_IRQn         (-2)
+#define  kSysTick_IRQn        (-1)
 
 
 /*!
@@ -229,7 +229,7 @@ void __kset_BASEPRI(uint32_t value)  __attribute__( ( naked ) );
 static __INLINE void kSetPriority(int32_t IRQn, uint32_t priority)
 {
    // set Priority for Cortex-M3 System Interrupts
-   kSCB->SHP[((uint32_t)(IRQn) & 0xF)-4] = ((priority << (8 - __NVIC_PRIO_BITS)) & 0xff);
+   kSCB->SHP[((uint32_t)(IRQn) & 0xF)-4] = ((priority << (8 - __kNVIC_PRIO_BITS)) & 0xff);
 }
 
 

@@ -26,8 +26,8 @@
 #ifndef __proc_h__
 #define __proc_h__
 
-#include "pkdefs.h"
-#include "alloc.h"
+#include <pkdefs.h>
+#include <alloc.h>
 #include <stddef.h>
 
 #define IDLE_PROC_ID       (0)
@@ -41,6 +41,7 @@ extern void exit (int status);
 // Process Manipulation
 void  proc_set_current_pid(pid_t pid);
 pid_t proc_get_current_pid(void);
+pid_t proc_search_pid (process_ptr_t fptr);
 process_t *proc_get_current_proc(void);
 process_t *proc_get_process(pid_t pid);
 

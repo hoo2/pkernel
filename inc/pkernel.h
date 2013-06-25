@@ -51,10 +51,10 @@
  *
  *       int main (void)
  *       {
- *          pkernel_boot ((size_t)320, CLOCK, TICK_FREQ);
- *          pkernel_newprocess (&pr_1, (size_t)320, 1, 0);
- *          pkernel_newprocess (&pr_2, (size_t)320, 1, 0);
- *          pkernel_run ();
+ *          kinit ((size_t)320, CLOCK, TICK_FREQ);
+ *          knew (&pr_1, (size_t)320, 1, 0);
+ *          knew (&pr_2, (size_t)320, 1, 0);
+ *          krun ();
  *          while (1);  // Unreachable.
  *       }
  *
@@ -68,19 +68,19 @@
  extern "C" {
 #endif
 
-#include "os.h"
+#include <os.h>
+
+pid_t knew (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
+int   kinit (size_t kmsize, clock_t clk, clock_t os_f);
+void  krun (void);
 
 
-pid_t pkernel_newprocess (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
-int   pkernel_boot (size_t __kmsize, kclock_t clk, kclock_t os_f);
-void  pkernel_run (void);
-
-
-extern kclock_t kget_clock (void);
-extern void     kset_clock (kclock_t clk);
-extern kclock_t kget_os_freq (void);
-extern void     kset_os_freq (kclock_t f);
-extern void     kupdate_SysTick (void);
+extern clock_t get_clock (void);
+extern void    set_clock (clock_t clk);
+extern void    update_clock (clock_t clk);
+extern clock_t get_freq (void);
+extern void    set_freq (clock_t f);
+extern void    update_freq (clock_t f);
 
 extern sem_t* sem_open(void);
 extern sem_t* mut_open (void);
@@ -97,6 +97,11 @@ extern void *malloc (size_t __size);
 extern void free (void* p);
 extern void *calloc(size_t N, size_t __size);
 extern void *realloc (void * __r, size_t __size);
+
+extern void crontab (process_ptr_t fptr, size_t ms, int8_t nice, int8_t fit, uint8_t pr, time_t at, time_t every);
+extern void crontab_r (process_ptr_t fptr);
+extern void microntab (micronfun_t fptr, clock_t every);
+extern void microntab_r (micronfun_t fptr);
 
 #ifdef __cplusplus
 }

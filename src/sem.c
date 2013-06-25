@@ -22,32 +22,26 @@
  *
  */
 
-#include "sem.h"
-
-/*!
- * Semaphore table
- */
-static sem_t semaphore[MAX_SEMAPHORES];
+#include <sem.h>
 
 /*!
  * \brief Open semaphore. Try to find a space for a new semaphore.
- * If there is, then allocates it and initialize the semaphore to @a v
+ * If there is, then allocates it and initialize the semaphore to \a v
  *
  * \param v The initial value of semaphore.
  * \return Pointer to semaphore on success, NULL if no space.
+ *
+ * \note
+ *    This function MUST NOT called within the pkernel's Interrupts
 */
 static sem_t* sopen(int v)
 {
-   int i;
+   sem_t* s;
 
-   for (i=0 ; i<MAX_SEMAPHORES ; ++i)
-      if (!semaphore[i].en)
-      {
-         semaphore[i].en = 1;
-         semaphore[i].val = v;
-         return &semaphore[i];
-      }
-   return (sem_t*)0;
+   s = (sem_t*) malloc (sizeof (sem_t));
+   if (s)
+      s->val = v;
+   return s;
 }
 
 
@@ -59,7 +53,7 @@ static sem_t* sopen(int v)
  * \param None
  * \return Pointer to semaphore on success, NULL if no space.
 */
-__INLINE sem_t* sem_open(void)
+inline sem_t* sem_open(void)
 {
    return sopen (0);
 }
@@ -71,7 +65,7 @@ __INLINE sem_t* sem_open(void)
  * \param None
  * \return Pointer to mutex on success, NULL if no space.
 */
-__INLINE sem_t* mut_open (void)
+inline sem_t* mut_open (void)
 {
    return sopen (1);
 }
@@ -86,8 +80,11 @@ __INLINE sem_t* mut_open (void)
 int sem_close (sem_t *s)
 {
    if (s->val>0)
-      s->en = 0;
-   return s->val;
+   {
+      free ((void*)s);
+      return 1;
+   }
+   return 0;
 }
 
 

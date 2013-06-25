@@ -1,5 +1,5 @@
 /*
- * sched.h : This file is part of pkernel
+ * cron.h : This file is part of pkernel
  *
  * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
  *
@@ -17,32 +17,47 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
- * Date:       03/2013
+ * Date:       06/2013
  * Version:
  *
  */
 
+#ifndef __cron_h__
+#define __cron_h__
 
-#ifndef __sched_h__
-#define __sched_h__
+#ifdef __cplusplus
+ extern "C" {
+#endif
 
-#include <proc.h>
+#include <pkdefs.h>
+#include <alloc.h>
+#include <stddef.h>
 
-pid_t schedule(void);
-process_t* sch_alarm (void);
-void sch_add_proc(pid_t pid);
-void sch_remove_proc (pid_t pid);
+typedef struct cron_list
+{
+   cron_t *head;
+   cron_t *tail;
+}cron_list_t;
 
-/* list operations */
-void sch_list_ins_back( proc_list_t *list, process_t *proc);
-void sch_list_ins_front (proc_list_t *list, process_t *proc);
-void sch_list_ins (proc_list_t *list, process_t *proc, process_t *before);
-void sch_list_remove (proc_list_t *list, process_t *proc);
-void sch_susp_proc (process_t *p);
-void sch_exit (process_t *p);
-int sch_runq_empty (void);
-int sch_susq_empty (void);
-int sch_empty_list (proc_list_t *l);
+typedef struct micron_list
+{
+   micron_t *head;
+   micron_t *tail;
+}micron_list_t;
 
-#endif //#ifndef __sched_h__
+void micron (void);
+void cron (void);
+uint8_t cron_stretching(void);
 
+void microntab (micronfun_t fptr, clock_t every);
+void microntab_r (micronfun_t fptr);
+void crontab (process_ptr_t fptr, size_t ms, int8_t nice, int8_t fit, uint8_t pr, time_t at, time_t every);
+void crontab_r (process_ptr_t fptr);
+
+extern pid_t knew (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
+
+#ifdef __cplusplus
+ }
+#endif
+
+#endif   //#ifndef __cron_h__

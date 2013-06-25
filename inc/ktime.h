@@ -29,7 +29,8 @@
  extern "C" {
 #endif
 
-#include "kcmsis.h"
+#include <kcmsis.h>
+//#include <time.h>
 
 /* =================== Data types ===================== */
 
@@ -46,19 +47,20 @@
 typedef _CLOCK_T_ clock_t;             /*!< CPU time type */
 typedef _TIME_T_ time_t;               /*!< date/time in unix secs past 1-Jan-70 type for 68 years*/
 
-typedef  _CLOCK_T_ kclock_t;           /*!< The clock freq known by the kernel */
-
 extern clock_t  volatile Ticks;        /*!< CPU time */
 extern time_t   volatile Now;          /*!< time in unix secs past 1-Jan-70 */
 
 /* =================== Exported Functions ===================== */
 
-kclock_t kget_clock (void);
-void kset_clock (kclock_t clk);
-kclock_t kget_os_freq (void);
-void kset_os_freq (kclock_t f);
 void kinit_SysTick (void);
-void kupdate_SysTick (void);
+
+clock_t get_clock (void);
+void set_clock (clock_t clk);
+void update_clock (clock_t clk);
+
+clock_t get_freq (void);
+void set_freq (clock_t f);
+void update_freq (clock_t f);
 
 
 clock_t clock (void);

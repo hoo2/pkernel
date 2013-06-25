@@ -22,7 +22,7 @@
  *
  */
 
-#include "alloc.h"
+#include <alloc.h>
 
 
 static al_t al[ALLOC_SIZE];      /*!< Allocation table to hold the allocated ram blocks for stack or heap. */
@@ -99,13 +99,22 @@ void __malloc_lock (void)
       ;
    malock = 1;
 }
+
 /*!
  * \breif malloc spin lock's unlock function.
  * \param None
  * \return None
  */
-__INLINE void __malloc_unlock (void){
+inline void __malloc_unlock (void){
    malock = 0;
+}
+
+/*!
+ * \breif Reads malloc lock state
+ * \return True if its locked
+ */
+inline uint8_t __malloc_state (void) {
+   return malock;
 }
 
 /*!
@@ -113,7 +122,7 @@ __INLINE void __malloc_unlock (void){
  * al_boot_f = 0 -> pkernel is not yet running.
  * al_boot_f = 1 -> pkernel is running.
  */
-__INLINE uint8_t al_boot (void){
+inline uint8_t al_boot (void){
    return al_boot_f;
 }
 
@@ -346,7 +355,7 @@ void alloc_init (void)
    al[0].sz = 0;
    al[0].flag = MA_BOTTOM;
 
-   al[1].mem_ptr = (void*) &_eram;  // Ignore warning. It's OK :)
+   al[1].mem_ptr = (unsigned long*) &_eram;  // Ignore warning. It's OK :)
    al[1].sz = 0;
    al[1].flag = MA_TOP;
 

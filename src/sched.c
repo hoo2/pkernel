@@ -22,7 +22,7 @@
  *
  */
 
-#include "sched.h"
+#include <sched.h>
 
 /*!
  * A list that holds all the active/running processes. The list does not
@@ -52,6 +52,8 @@ pid_t schedule(void)
 {
    process_t *p, *wp = sch_alarm ();
    pid_t pid;
+   uint8_t  ins=0;
+
    /*
     * If we have a awakened process, we have to put
     * it somewhere. So we look the niceness.
@@ -60,23 +62,33 @@ pid_t schedule(void)
    {
       sch_list_remove (&susq, wp);  // Remove it from susq
 
-      if (sch_runq_empty ())  /* No others */
-         sch_list_ins_back (&runq, wp);
-      else if (wp->nice <= runq.head->nice && runq.head->ticks_left>0)
-         /* More priority of a process with ticks_left */
+      if (sch_runq_empty ())        // No others
          sch_list_ins_front (&runq, wp);
-      else
+      else                          // There is others, check niceness.
       {
          /*
-          * Less priority, or the previous exhausted it's time slice.
-          * We insert wp 2nd and let next filter to switch cause ticks_left<=0.
+          * Find first spot in front of a non zero ticks_left process
+          * with bigger niceness than wp.
+          * \note
+          *    We leave zero ticks_left process out, because the rest of
+          *    the scheduler will roll them.
           */
-         p=runq.head;
-         sch_list_remove (&runq, p);
-         sch_list_ins_front (&runq, wp);
-         sch_list_ins_front (&runq, p);
+         p = runq.head;
+         ins = 1;
+         while (ins && p)
+         {
+            if (p->ticks_left && (wp->nice < p->nice))
+            {
+               sch_list_ins (&runq, wp, p);
+               ins = 0;
+            }
+            p = p->next;
+         }
+         if (ins)                   // All items was meaner than wp
+            sch_list_ins_back (&runq, wp);
       }
    }
+
    // If we still have no processes, switch to idle
    if (sch_runq_empty ())
       pid = 0;
@@ -112,7 +124,7 @@ pid_t schedule(void)
 process_t* sch_alarm (void)
 {
    process_t *p=(process_t*)0;
-   uint8_t  wu_f = 0;   // wakeup flag
+   uint8_t  wu = 0;   // wakeup flag
 
    if (sch_susq_empty())
       return p;
@@ -126,13 +138,18 @@ process_t* sch_alarm (void)
        * If Alarm       then alarm <= Ticks
        * If Semaphore   then Value > 0
        */
-      wu_f = 0;
+      wu = 0;
       if (!p->alarm || p->alarm <= Ticks)
-         ++wu_f;
-      if (p->sem->en && p->sem->val>0)
-         ++wu_f;
-      if (wu_f>1)
+         ++wu;
+      if (!p->sem || (p->sem && p->sem->val>0))
+         ++wu;
+      if (wu>1)
+      {
+         // Release the process from shackles
+         p->alarm = 0;
+         p->sem = (void*)0;
          return p;
+      }
 
    } while (p->next);
 
@@ -183,7 +200,7 @@ void sch_list_ins_back(proc_list_t *list, process_t *proc)
 }
 
 /*!
- * \brief Add a process in front of the @a list.
+ * \brief Add a process in front of the \a list.
  * \param list Pointer to list
  * \param proc Pointer to process
  */
@@ -200,6 +217,28 @@ void sch_list_ins_front(proc_list_t *list, process_t *proc)
 }
 
 /*!
+ * \brief Add a process in the \a list before \b before.
+ * \param list Pointer to list
+ * \param proc Pointer to process
+ */
+void sch_list_ins (proc_list_t *list, process_t *proc, process_t *before)
+{
+   process_t *pp;
+
+   if (list->head == before)
+      sch_list_ins_front(list, proc);
+   else
+   {
+      pp = before->prev;
+      pp->next = proc;
+      before->prev = proc;
+
+      proc->next = before;
+      proc->prev = pp;
+   }
+}
+
+/*!
  * \brief Remove a process from a @a list.
  * \param list Pointer to list
  * \param proc Pointer to process
@@ -208,13 +247,10 @@ void sch_list_remove(proc_list_t *list, process_t *proc)
 {
    if(proc->prev)
       proc->prev->next = proc->next;
-
    if(proc->next)
       proc->next->prev = proc->prev;
-
    if(list->head == proc)
       list->head = proc->next;
-
    if(list->tail == proc)
       list->tail = proc->prev;
 
@@ -246,7 +282,7 @@ void sch_exit (process_t *p)
 /*!
  * Return if a list is empty
  */
-__INLINE int sch_empty_list (proc_list_t *l)
+inline int sch_empty_list (proc_list_t *l)
 {
    return (l->head) ? 0 : 1;
 }
@@ -254,7 +290,7 @@ __INLINE int sch_empty_list (proc_list_t *l)
 /*!
  * Return if runq is empty
  */
-__INLINE int sch_runq_empty (void)
+inline int sch_runq_empty (void)
 {
    return (runq.head) ? 0 : 1;
 }
@@ -262,7 +298,7 @@ __INLINE int sch_runq_empty (void)
 /*!
  * Return if susq is empty
  */
-__INLINE int sch_susq_empty (void)
+inline int sch_susq_empty (void)
 {
    return (susq.head) ? 0 : 1;
 }

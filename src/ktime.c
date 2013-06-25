@@ -22,23 +22,19 @@
  *
  */
 
-#include "ktime.h"
+#include <ktime.h>
 
-clock_t  volatile Ticks;               /*!< CPU time */
-time_t   volatile Now;                 /*!< Time in unix secs past 1-Jan-70 */
-
-static kclock_t  volatile kclock;      /*!< The kernel's "knowledge" of cpu clock */
-static kclock_t  volatile os_freq;     /*!< The kernels frequency */
-
+static clock_t  volatile kcpu_clk;     /*!< The kernel's "knowledge" of cpu clock */
+static clock_t  volatile kfreq;        /*!< The kernels frequency */
 
 
 /*!
- * Initialize and Start the SysTick with the kclock and os_freq
+ * Initialize and Start the SysTick with the kcpu_clk and kfreq
  */
 void kinit_SysTick (void)
 {
    // Time base configuration and enable
-   kSysTick->LOAD = (kclock / 8) / os_freq;
+   kSysTick->LOAD = (kcpu_clk / 8) / kfreq;
    kSysTick->CTRL |= kSysTick_CTRL_ENABLE_Msk + kSysTick_CTRL_TICKINT_Msk;
 }
 
@@ -46,68 +42,92 @@ void kinit_SysTick (void)
  * \brief Get the pkernel's knowledge of os frequency.
  * \return OS Frequency
  */
-__INLINE kclock_t kget_os_freq (void){
-   return os_freq;
+inline clock_t get_freq (void) {
+   return kfreq;
 }
 
 /*!
- * \brief Set the pkernel's os frequency (Update his knowledge).
- * \param f OS Frequency.
+ * \brief Set the pkernel's knowledge of os frequency.
+ * \param   f OS Frequency
+ *
+ * \note
+ *    This function does not update theSusTick. Use \sa update_freq() instead.
  */
-__INLINE void kset_os_freq (kclock_t f){
-   os_freq = f;
+inline void set_freq (clock_t f) {
+   kfreq = f;
+}
+
+/*!
+ * \brief
+ *    Set the pkernel's os frequency (Update his knowledge).
+ *    Also reconfigure the SysTick with the new kfreq.
+ * \param   f  OS Frequency.
+ */
+void update_freq (clock_t f)
+{
+   if (kfreq != f)
+   {
+      kfreq = f;
+      kSysTick->LOAD = (kcpu_clk / 8) / kfreq;
+   }
 }
 
 /*!
  * \brief Get the pkernel's knowledge of CPU frequency.
  * \return CPU Frequency
  */
-__INLINE kclock_t kget_clock (void){
-   return kclock;
+inline clock_t get_clock (void) {
+   return kcpu_clk;
 }
 
 /*!
- * \brief Set the pkernel's knowledge of CPU freq.
+ * \brief Set the pkernel's knowledge of os frequency.
+ * \param   f OS Frequency
+ *
+ * \note
+ *    This function does not update theSusTick. Use \sa update_freq() instead.
+ */
+inline void set_clock (clock_t clk) {
+   kcpu_clk = clk;
+}
+
+/*!
+ * \brief
+ *    Set the pkernel's knowledge of CPU freq.
+ *    Also reconfigure the SysTick with the new kcpu_clk.
  * \param f CPU Frequency.
  */
-__INLINE void kset_clock (kclock_t clk){
-   kclock = clk;
-}
-
-/*!
- * \brief Reconfigure the SysTick with the kclock and os_freq
- * \warning Use kset_os_freq() and kset_clock() before.
- */
-void kupdate_SysTick (void)
+void update_clock (clock_t clk)
 {
-   /* Time base configuration */
-   kSysTick->LOAD = (kclock / 8) / os_freq;
+   if (kcpu_clk != clk)
+   {
+      kcpu_clk = clk;
+      kSysTick->LOAD = (kcpu_clk / 8) / kfreq;
+   }
 }
 
-
 /*!
- * \brief Determines the processor time used.
- * Returns the implementation's best approximation to the processor time
- * used by the program since program invocation. The time in
- * seconds is the value returned divided by the value of the macro
- * CLK_TCK or CLOCKS_PER_SEC
- *
- * \param None
- * \return Current value of Ticks \sa Ticks
+ * \brief
+ *  determines the processor time used.
+ * \return
+ *  the implementation's best approximation to the processor time
+ *  used by the program since program invocation. The time in
+ *  seconds is the value returned divided by the value of the macro
+ *  CLK_TCK or CLOCKS_PER_SEC
  */
-__INLINE clock_t clock (void)
+inline clock_t clock (void)
 {
    return (clock_t) Ticks;
 }
 
 /*!
- * \brief Determines the current calendar time. The encoding of the value is
- * in unix secs past 1-Jan-70. Returns the implementations best approximation
- * to the current calendar time. If timer is not a null pointer, the return value
- * is also assigned to the object it points to.
- *
- * \param timer Pointer to time_t struct
- * \return Current value of Now \sa Now
+ * \brief
+ *  determines the current calendar time. The encoding of the value is
+ *  unspecified.
+ * \return
+ *  The implementations best approximation to the current calendar
+ *  time. If timer is not a null pointer, the return value
+ *  is also assigned to the object it points to.
  */
 time_t time (time_t *timer)
 {

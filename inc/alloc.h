@@ -26,12 +26,12 @@
 #ifndef __alloc_h__
 #define __alloc_h__
 
-#include "pkdefs.h"
-#include "sem.h"
-#include "kcmsis.h"
+#include <pkdefs.h>
+#include <sem.h>
+#include <kcmsis.h>
 #include <stddef.h>
 
-extern void _eram;                        /*!< End address for ram provided by ld script. */
+extern unsigned long _eram;               /*!< End address for ram provided by ld script. */
 extern unsigned long pulStack[];          /*!< Starting address of the stack provided by ld script. */
 
 typedef  char *caddr_t;                   /*!< same as stdlib */
@@ -72,6 +72,7 @@ void alloc_init (void);
 
 void __malloc_lock (void);    // Spin locks
 void __malloc_unlock (void);
+uint8_t __malloc_state (void);
 
 uint8_t al_boot (void);
 void set_al_boot (void);

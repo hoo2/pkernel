@@ -26,7 +26,7 @@
 #ifndef __sem_h__
 #define __sem_h__
 
-#include "sched.h"
+#include <sched.h>
 
 
 sem_t* sem_open(void);

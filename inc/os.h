@@ -26,11 +26,11 @@
 #ifndef __os_h__
 #define __os_h__
 
-
-#include "pkdefs.h"
-#include "sched.h"
-#include "kcmsis.h"
-#include "ktime.h"
+#include <kcmsis.h>
+#include <pkdefs.h>
+#include <sched.h>
+#include <cron.h>
+#include <ktime.h>
 
 /*!
  * Data structure used when a OS_Call is waiting the PendSV.
@@ -96,6 +96,7 @@ void wait (sem_t *s);
 void signal (sem_t *s);
 void lock (sem_t *s);
 void unlock (sem_t *m);
+
 
 #endif //#ifndef __os_h__
 
