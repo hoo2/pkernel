@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Project version="2G" name="pkernel">
+  <Target name="pkernel" isCurrent="1">
+    <Device manufacturerId="9" manufacturerName="ST" chipId="256" chipName="STM32F100R8" boardId="" boardName=""/>
+    <BuildOption>
+      <Compile>
+        <Option name="OptimizationLevel" value="0"/>
+        <Option name="UseFPU" value="0"/>
+        <Option name="UserEditCompiler" value=""/>
+        <Includepaths>
+          <Includepath path="."/>
+          <Includepath path="inc"/>
+        </Includepaths>
+        <DefinedSymbols/>
+      </Compile>
+      <Link useDefault="0">
+        <Option name="DiscardUnusedSection" value="0"/>
+        <Option name="UserEditLinkder" value=""/>
+        <Option name="UseMemoryLayout" value="1"/>
+        <Option name="Library" value="Not use C Library"/>
+        <LinkedLibraries/>
+        <MemoryAreas debugInFlashNotRAM="1">
+          <Memory name="IROM1" type="ReadOnly" size="0x00010000" startValue="0x08000000"/>
+          <Memory name="IRAM1" type="ReadWrite" size="0x00002000" startValue="0x20000000"/>
+          <Memory name="IROM2" type="ReadOnly" size="" startValue=""/>
+          <Memory name="IRAM2" type="ReadWrite" size="" startValue=""/>
+        </MemoryAreas>
+        <LocateLinkFile path="c:/coocox/coide/configuration/programdata/pkernel/arm-gcc-link.ld" type="0"/>
+      </Link>
+      <Output>
+        <Option name="OutputFileType" value="1"/>
+        <Option name="Path" value="obj/"/>
+        <Option name="Name" value="pkernel"/>
+        <Option name="HEX" value="1"/>
+        <Option name="BIN" value="1"/>
+      </Output>
+      <User>
+        <UserRun name="Run#1" type="Before" checked="0" value=""/>
+        <UserRun name="Run#1" type="After" checked="0" value=""/>
+      </User>
+    </BuildOption>
+    <DebugOption>
+      <Option name="org.coocox.codebugger.gdbjtag.core.adapter" value="ST-Link"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.debugMode" value="SWD"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.clockDiv" value="1M"/>
+      <Option name="org.coocox.codebugger.gdbjtag.corerunToMain" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.jlinkgdbserver" value=""/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.userDefineGDBScript" value=""/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.targetEndianess" value="0"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.jlinkResetMode" value="Type 0: Normal"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.resetMode" value="SYSRESETREQ"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ifSemihost" value="0"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ifCacheRom" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ipAddress" value="127.0.0.1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.portNumber" value="2009"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.autoDownload" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.verify" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.downloadFuction" value="Erase Effected"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.defaultAlgorithm" value="STM32F10x_MD_64.elf"/>
+    </DebugOption>
+    <ExcludeFile/>
+  </Target>
+  <Components path="./"/>
+  <Files>
+    <File name="src/os.c" path="src/os.c" type="1"/>
+    <File name="src/alloc.c" path="src/alloc.c" type="1"/>
+    <File name="inc/sched.h" path="inc/sched.h" type="1"/>
+    <File name="inc/sem.h" path="inc/sem.h" type="1"/>
+    <File name="inc/proc.h" path="inc/proc.h" type="1"/>
+    <File name="inc/pkdefs.h" path="inc/pkdefs.h" type="1"/>
+    <File name="src/cron.c" path="src/cron.c" type="1"/>
+    <File name="src" path="" type="2"/>
+    <File name="inc/ktime.h" path="inc/ktime.h" type="1"/>
+    <File name="inc/cron.h" path="inc/cron.h" type="1"/>
+    <File name="inc/kcmsis.h" path="inc/kcmsis.h" type="1"/>
+    <File name="src/pkernel.c" path="src/pkernel.c" type="1"/>
+    <File name="src/kcmsis.c" path="src/kcmsis.c" type="1"/>
+    <File name="src/proc.c" path="src/proc.c" type="1"/>
+    <File name="src/sched.c" path="src/sched.c" type="1"/>
+    <File name="inc" path="" type="2"/>
+    <File name="inc/os.h" path="inc/os.h" type="1"/>
+    <File name="inc/pkernel.h" path="inc/pkernel.h" type="1"/>
+    <File name="inc/alloc.h" path="inc/alloc.h" type="1"/>
+    <File name="src/pmcs.c" path="src/pmcs.c" type="1"/>
+    <File name="src/sem.c" path="src/sem.c" type="1"/>
+    <File name="inc/pmcs.h" path="inc/pmcs.h" type="1"/>
+    <File name="src/ktime.c" path="src/ktime.c" type="1"/>
+  </Files>
+</Project>
