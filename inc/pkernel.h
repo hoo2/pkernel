@@ -97,6 +97,8 @@ extern void free (void* p);
 extern void *calloc(size_t N, size_t __size);
 extern void *realloc (void * __r, size_t __size);
 
+extern void service_add (service_t fptr, clock_t every);
+extern void service_rem (service_t fptr);
 extern void crontab (process_ptr_t fptr, size_t ms, int8_t nice, int8_t fit, uint8_t pr, time_t at, time_t every);
 extern void crontab_r (process_ptr_t fptr);
 extern void microntab (micronfun_t fptr, clock_t every);

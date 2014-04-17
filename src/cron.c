@@ -24,63 +24,56 @@
 
 #include <cron.h>
 
+static service_list_t  servl;
 static cron_list_t     cronl;
-static micron_list_t   micronl;
 
 static uint8_t cron_stretch;
-static uint8_t micron_stretch;
-/*!
- * Return if a list is empty
- */
-static inline int micron_empty_list (micron_list_t *l)
-{
-   return (l->head) ? 0 : 1;
-}
+static uint8_t service_lock;
 
 /*!
- * \brief   Adds a function to micron list
+ * \brief   Adds a function to Service list
  * \param   pfun  Pointer to function
- * \param   every Tick period. Micron will run the \a fptr every \b every Ticks
+ * \param   every Tick period. pkernel will run the \a fptr every \b every Ticks
  *
  * \note
  *    All the entries will run in privileged mode and will use the main
  *    stack.
  */
-void microntab (micronfun_t fptr, clock_t every)
+void service_add (service_t fptr, clock_t every)
 {
-   micron_t *m = (micron_t *) malloc (sizeof (micron_t));
+   service_item_t *m = (service_item_t *) malloc (sizeof (service_item_t));
 
    if (!m)  // check for free space
       return;
 
-   // Add the micron node to the micron list
-   micron_stretch = 1;
+   // Add the service node to the service list
+   service_lock = 1;
    /*
-    * Micron stretching for list manipulation.
-    * It's OK to loose "some" ticks when we configure micron.
+    * Service lock for list manipulation.
+    * It's OK to loose "some" ticks when we configure services.
     */
-   if(micron_empty_list(&micronl))
-      micronl.head = m;
+   if(!servl.head)
+      servl.head = m;
    else
-      micronl.tail->next = m;
+      servl.tail->next = m;
 
    m->next = 0;
-   m->prev = micronl.tail;
-   micronl.tail = m;
+   m->prev = servl.tail;
+   servl.tail = m;
 
    // Fill micron values
    m->every = every;
    m->fptr = fptr;
-   micron_stretch = 0;
+   service_lock = 0;
 }
 
 /*!
- * \brief   Remove a function from Micron
+ * \brief   Remove a function from Service list
  * \param   fptr Pointer to function
  */
-void microntab_r (micronfun_t fptr)
+void service_rem (service_t fptr)
 {
-   micron_t *m = micronl.head;
+   service_item_t *m = servl.head;
 
    // Find node or return
    for ( ; m && (m->fptr!=fptr) ; m=m->next)
@@ -89,20 +82,20 @@ void microntab_r (micronfun_t fptr)
       return;
 
    // Remove it
-   micron_stretch = 1;
+   service_lock = 1;
    /*
-    * Micron stretching for list manipulation.
-    * It's OK to loose "some" ticks when we configure micron.
+    * Service lock for list manipulation.
+    * It's OK to loose "some" ticks when we configure services.
     */
    if(m->prev)
       m->prev->next = m->next;
    if(m->next)
       m->next->prev = m->prev;
-   if(micronl.head == m)
-      micronl.head = m->next;
-   if(micronl.tail == m)
-      micronl.tail = m->prev;
-   micron_stretch = 0;
+   if(servl.head == m)
+      servl.head = m->next;
+   if(servl.tail == m)
+      servl.tail = m->prev;
+   service_lock = 0;
    free (m);
 }
 
@@ -111,12 +104,12 @@ void microntab_r (micronfun_t fptr)
  *    Micron service. This function is called from SysTick
  *    handler every tick.
  */
-void micron (void)
+void services (void)
 {
-   micron_t *m = micronl.head;
+   service_item_t *m = servl.head;
 
-   if (!m || micron_stretch)
-      return;     // Micron stretching, or no micron list. Aboard!
+   if (!m || service_lock)
+      return;     // Service lock, or no service list. Aboard!
 
    // Find node to call
    do {
@@ -124,14 +117,6 @@ void micron (void)
          m->fptr ();
       m=m->next;
    } while (m);
-}
-
-/*!
- * Return if a list is empty
- */
-static inline int cron_empty_list (cron_list_t *l)
-{
-   return (l->head) ? 0 : 1;
 }
 
 /*!
@@ -158,7 +143,7 @@ void crontab ( process_ptr_t fptr, size_t ms,
     * Cron stretching for list manipulation.
     * It's OK to loose "some" ticks when we configure cron.
     */
-   if(cron_empty_list(&cronl))
+   if(!cronl.head)
       cronl.head = m;
    else
       cronl.tail->next = m;

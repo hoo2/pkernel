@@ -33,24 +33,12 @@
 #include <alloc.h>
 #include <stddef.h>
 
-typedef struct cron_list
-{
-   cron_t *head;
-   cron_t *tail;
-}cron_list_t;
-
-typedef struct micron_list
-{
-   micron_t *head;
-   micron_t *tail;
-}micron_list_t;
-
-void micron (void);
+void services (void);
 void cron (void);
 uint8_t cron_stretching(void);
 
-void microntab (micronfun_t fptr, clock_t every);
-void microntab_r (micronfun_t fptr);
+void service_add (service_t fptr, clock_t every);
+void service_rem (service_t fptr);
 void crontab (process_ptr_t fptr, size_t ms, int8_t nice, int8_t fit, uint8_t pr, time_t at, time_t every);
 void crontab_r (process_ptr_t fptr);
 

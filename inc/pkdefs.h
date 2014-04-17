@@ -135,8 +135,28 @@ typedef struct proc_list
    process_t *tail;
 }proc_list_t;
 
+typedef void (*service_t) (void);
+   /*!< Pointer to void function (void) to use as service */
+
 /*!
- * Type for cron list
+ * Type for service item
+ */
+typedef struct service_item
+{
+   service_t      fptr;
+   clock_t        every;
+   struct service_item  *prev, *next;
+}service_item_t;
+
+
+typedef struct service_list
+{
+   service_item_t *head;
+   service_item_t *tail;
+}service_list_t;
+
+/*!
+ * Type for cron item
  */
 typedef struct cron
 {
@@ -149,8 +169,11 @@ typedef struct cron
    struct cron    *prev, *next;
 }cron_t;
 
-typedef void (*micronfun_t) (void);
-   /*!< Pointer to void function (void) to use with cron */
+typedef struct cron_list
+{
+   cron_t *head;
+   cron_t *tail;
+}cron_list_t;
 
 /*!
  * Type for micron list

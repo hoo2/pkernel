@@ -48,7 +48,7 @@ void SysTick_Handler(void)
     * call cron and micron.
     */
    ++Ticks;
-   micron ();
+   services ();
    if ( !(Ticks % get_freq ()))
    {
       ++Now;
