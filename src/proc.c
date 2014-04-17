@@ -40,7 +40,7 @@ static pid_t last_pid;  /*!< pid of the last real process that was running, this
  */
 uint32_t proc_save_ctx (void)
 {
-   uint32_t result = 0;
+   uint32_t result;
 
    __asm volatile (
          "MRS r0, msp         \n\t"
@@ -53,21 +53,15 @@ uint32_t proc_save_ctx (void)
 }
 
 /*!
- * \brief Pop R4-R11 registers from stack and returns the new SP
- *
- * \return The stack pointer
+ * \brief Pop R4-R11 registers from stack and update the new SP
  */
-uint32_t proc_load_ctx (void)
+void proc_load_ctx (void)
 {
-   uint32_t result = 0;
    __asm volatile (
          "MRS r0, msp         \n\t"
          "LDMFD r0!, {r4-r11} \n\t"
          "MSR msp, r0         \n\t"
-         "MOV %0, r0          \n\t"
-         "BX  lr              \n\t"
-         : "=r" (result) );
-   return result;
+         "BX  lr              \n\t" );
 }
 
 /*!

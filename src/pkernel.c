@@ -78,7 +78,8 @@ int kinit (size_t kmsize, clock_t clk, clock_t os_f)
    // Make the idle proc
    pid = proc_newproc ((process_ptr_t)&proc_idle, kmsize, 0, 0);
    /*
-    * XXX: We make sure that we are outside off ANY process (cur_pid=-1)
+    * \note
+    * We make sure that we are outside off ANY process (cur_pid=-1)
     * so the idle's proc[0].tcb.sp remains untouched by PendSV until
     * our first context_switch from idle.
     */

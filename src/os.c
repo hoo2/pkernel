@@ -40,6 +40,9 @@ static os_command_t os_command;
  */
 void SysTick_Handler(void)
 {
+   // Trigger PendSV
+   __pendsv_trig ();
+
    /*
     * Update Exported Counters and
     * call cron and micron.
@@ -58,9 +61,8 @@ void SysTick_Handler(void)
    // If we have process in runq consume time of it.
    if ( !sch_runq_empty () )
       proc_dec_ticks (proc_get_current_pid());
-
-   // Trigger PendSV
-   __pendsv_trig ();
+   // Return to PendSV
+   //__asm volatile ("BX %0" : : "r" (0xFFFFFFF1));
 }
 
 /*!
@@ -77,14 +79,9 @@ void SysTick_Handler(void)
  */
 void PendSV_Handler (void)
 {
-   static uint32_t linkreg=0;
    uint32_t reg;
-   // linkreg is static so it lives between context switches
+   // \note linkreg is static so it lives between context switches
 
-   __asm volatile ("MOV %0, lr" : "=r" (linkreg));
-
-   if (os_command.flags)         // Clear wait flags
-      os_command.flags = 0;
    /*
     * At this point NVIC has pushed the hw_stack_frame
     * We push lr and sw_stack_frame, and save the sp of it to
@@ -92,6 +89,9 @@ void PendSV_Handler (void)
     */
    reg = proc_save_ctx ();
    proc_store_stack_pointer (reg);
+
+   if (os_command.flags)         // Clear wait flags
+      os_command.flags = 0;
    /*
     * Get from scheduler the pid to run and check
     * if we have to change stack.
@@ -106,7 +106,8 @@ void PendSV_Handler (void)
     */
    proc_load_ctx ();
    // Add custom epilogue to return from ISR
-   __asm volatile ("BX %0" : : "r" (linkreg));
+   __asm volatile ("MOV lr, #0xFFFFFFF9 \n\t"
+                   "BX lr               \n\t" );
 }
 
 /*!
@@ -128,6 +129,7 @@ void OS_Call (process_t *p, os_command_enum_t cmd)
     */
    while ( __pendsv_act() || __systick_act() )
       ;
+   __os_halt_ISR();
    switch (cmd)
    {
       case OS_EXIT:
@@ -139,7 +141,13 @@ void OS_Call (process_t *p, os_command_enum_t cmd)
          break;
       default:
          return;
+      /*
+       * XXX: I know its not safe to make runq, susq write operations.
+       * But for now we assume we are just after SysTick.
+       * In the near future OS_Call will discarded and SVC will take over.
+       */
    }
+   __os_resume_ISR();
    // Set flags, trigger PendSV and wait.
    os_command.flags |= 0x1 << cmd;
    __pendsv_trig ();

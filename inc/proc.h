@@ -47,7 +47,7 @@ process_t *proc_get_process(pid_t pid);
 
 // API to os.c/h
 void     context_switch(uint32_t s) __attribute__( ( naked ) );
-uint32_t proc_load_ctx(void) __attribute__( ( naked ) );
+void     proc_load_ctx(void) __attribute__( ( naked ) );
 uint32_t proc_save_ctx(void) __attribute__( ( naked ) );
 uint32_t proc_sel_stack (pid_t pid);
 void     proc_store_stack_pointer (uint32_t sp);

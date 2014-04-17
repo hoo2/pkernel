@@ -70,13 +70,24 @@ typedef enum
 #define OS_PENDSV_PRI      (0x0F)
 #define OS_SYSTICK_PRI     (0x0E)
 
-#define __os_halt_ISR()    (__kset_BASEPRI (OS_SYSTICK_PRI))
+#define __os_halt_ISR()                         \
+   do {                                         \
+      __kset_BASEPRI ((OS_SYSTICK_PRI << (8 - __kNVIC_PRIO_BITS)) & 0xff); \
+      __asm volatile( "dsb" );                  \
+      __asm volatile( "isb" );                  \
+   } while (0)
+
 #define __os_resume_ISR()  (__kset_BASEPRI (0))
+
+#define __pendsv_trig()                         \
+   do {                                         \
+   kSCB->ICSR |= kSCB_ICSR_PENDSVSET_Msk;       \
+   __asm volatile( "dsb" );                     \
+   __asm volatile( "isb" );                     \
+   } while (0)
 
 #define __pendsv_act()     (kSCB->SHCSR & kSCB_SHCSR_PENDSVACT_Msk)
 #define __systick_act()    (kSCB->SHCSR & kSCB_SHCSR_SYSTICKACT_Msk)
-
-#define __pendsv_trig()    (kSCB->ICSR |= kSCB_ICSR_PENDSVSET_Msk)
 
 /*
  * Exported Functions for inner use.
