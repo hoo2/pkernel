@@ -212,11 +212,15 @@ void cron (void)
 {
    cron_t *m = cronl.head;
 
-   if (!m)     // No Cron list aboard
+   if (!m)     // No Cron list. Aboart!
       return;
 
-   if (__malloc_state())   // Malloc is locked. Aboard with flag
+   if (__malloc_state() || __proc_state())
    {
+      /*
+       * malloc or proc[] is locked.
+       * Aboart with cron stretching.
+       */
       cron_stretch = 1;
       return;
    }

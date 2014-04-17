@@ -32,6 +32,36 @@ static process_t proc[MAX_PROC];
 
 static pid_t cur_pid;   /*!< pid of the currently executing process. The idle process's cur_pid is 0.*/
 static pid_t last_pid;  /*!< pid of the last real process that was running, this should never become 0. */
+static uint8_t prock;   /*!< proc lock flag. Set proc table is used. */
+
+/*!
+ * \breif Spin lock to make thread safe the malloc functionality.
+ * \param None
+ * \return None
+ */
+void __proc_lock (void)
+{
+   while (prock == 1)
+      ;
+   prock = 1;
+}
+
+/*!
+ * \breif malloc spin lock's unlock function.
+ * \param None
+ * \return None
+ */
+inline void __proc_unlock (void){
+   prock = 0;
+}
+
+/*!
+ * \breif Reads malloc lock state
+ * \return True if its locked
+ */
+inline uint8_t __proc_state (void) {
+   return prock;
+}
 
 /*!
  * \brief Push R4-R11 registers to stack and returns the new SP
@@ -216,6 +246,7 @@ pid_t proc_newproc (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
    hw_stack_frame_t *pfrm;
 
    /* Find an empty slot in proc table */
+   __proc_lock ();
    for (i = 0; i < MAX_PROC; ++i)
       if (!proc[i].is)
          break;
@@ -255,7 +286,7 @@ pid_t proc_newproc (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
 
    // Save the SP of the process
    proc[pid].tcb.sp = (uint32_t) pfrm - sizeof(sw_stack_frame_t);
-
+   __proc_unlock ();
    return pid;
 }
 
@@ -266,6 +297,8 @@ pid_t proc_newproc (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
 void proc_exit (process_t *p)
 {
    p->is = 0;
-   m_fr ((void *) p->tcb.sp_tip);
+   __malloc_lock ();
+      m_fr ((void *) p->tcb.sp_tip);
+   __malloc_unlock ();
 }
 

@@ -38,6 +38,12 @@ extern void exit (int status);
 /*
  * Exported to lib
  */
+
+// Spin locks
+void __proc_lock (void);
+ void __proc_unlock (void);
+uint8_t __proc_state (void);
+
 // Process Manipulation
 void  proc_set_current_pid(pid_t pid);
 pid_t proc_get_current_pid(void);
