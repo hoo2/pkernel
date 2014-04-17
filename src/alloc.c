@@ -129,7 +129,7 @@ inline uint8_t al_boot (void){
 /*!
  * Set al_boot flag to 1 to indicate a running pkernel.
  */
-__INLINE void set_al_boot (void){
+inline void set_al_boot (void){
    al_boot_f = 1;
 }
 

@@ -74,7 +74,6 @@ pid_t knew (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
 int   kinit (size_t kmsize, clock_t clk, clock_t os_f);
 void  krun (void);
 
-
 extern clock_t get_clock (void);
 extern void    set_clock (clock_t clk);
 extern void    update_clock (clock_t clk);

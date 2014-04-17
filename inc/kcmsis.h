@@ -25,7 +25,6 @@
 #ifndef  __kcmsis_h__
 #define  __kcmsis_h__
 
-
 #ifdef __cplusplus
  extern "C" {
 #endif
@@ -35,11 +34,6 @@
 #endif
 
 #include <stdint.h>                           /* Include standard types */
-
-#if defined (__ICCARM__)
-  #include <intrinsics.h>                     /* IAR Intrinsics   */
-#endif
-
 
 /*!
  * IO definitions
@@ -52,6 +46,7 @@
 #else
 #define     __I     volatile const          /*!< defines 'read only' permissions      */
 #endif
+
 #define     __O     volatile                  /*!< defines 'write only' permissions     */
 #define     __IO    volatile                  /*!< defines 'read / write' permissions   */
 
@@ -170,45 +165,30 @@ typedef struct
 
 
 
+
+
 /*******************************************************************************
  *                Hardware Abstraction Layer
  ******************************************************************************/
 
-#if defined ( __CC_ARM   )
-#define __ASM            __asm                                      /*!< asm keyword for ARM Compiler          */
-#define __INLINE         __inline                                   /*!< inline keyword for ARM Compiler       */
+#define __kWFI()   __asm volatile ( "WFI    \n\t" )
 
-#elif defined ( __ICCARM__ )
-#define __ASM           __asm                                       /*!< asm keyword for IAR Compiler          */
-#define __INLINE        inline                                      /*!< inline keyword for IAR Compiler. Only avaiable in High optimization mode! */
-
-#elif defined   (  __GNUC__  )
-#define __ASM            __asm         /*!< asm keyword for GNU Compiler          */
-#define __INLINE         inline        /*!< inline keyword for GNU Compiler       */
-
-#elif defined   (  __TASKING__  )
-#define __ASM            __asm         /*!< asm keyword for TASKING Compiler      */
-#define __INLINE         inline        /*!< inline keyword for TASKING Compiler   */
-
-#endif
-
-#if defined ( __CC_ARM   ) /*------------------RealView Compiler -----------------*/
-
-__ASM void __kset_BASEPRI(uint32_t basePri);
-//#define __DSB()                           __dsb(0)
-
-#elif (defined (__ICCARM__)) /*------------------ ICC Compiler -------------------*/
-
-__ASM void __kset_BASEPRI(uint32_t basePri);
-/* intrinsic void __DSB(void); */
-
-#elif (defined (__GNUC__)) /*------------------ GNU Compiler ---------------------*/
 
 void __kset_BASEPRI(uint32_t value)  __attribute__( ( naked ) );
-/*static __INLINE void __DSB(){
+
+uint32_t __kget_PRIMASK(void) __attribute__( ( naked ) );
+void __kset_PRIMASK(uint32_t primask) __attribute__( ( naked ) );
+
+uint32_t __kget_FAULTMASK(void) __attribute__( ( naked ) );
+void __kset_FAULTMASK(uint32_t fmsk) __attribute__( ( naked ) );
+
+uint8_t __kPrivilege(void);
+
+/*
+static __INLINE void __DSB() {
    __ASM volatile ("dsb");
-}*/
-#endif
+}
+*/
 
 /*  ==================   NVIC functions  ================== */
 
@@ -226,7 +206,7 @@ void __kset_BASEPRI(uint32_t value)  __attribute__( ( naked ) );
  * \param  priority  The priority to set
  *
  */
-static __INLINE void kSetPriority(int32_t IRQn, uint32_t priority)
+static inline void kSetPriority(int32_t IRQn, uint32_t priority)
 {
    // set Priority for Cortex-M3 System Interrupts
    kSCB->SHP[((uint32_t)(IRQn) & 0xF)-4] = ((priority << (8 - __kNVIC_PRIO_BITS)) & 0xff);
@@ -251,8 +231,7 @@ static __INLINE void kSetPriority(int32_t IRQn, uint32_t priority)
 */
 
 #ifdef __cplusplus
-}
+ }
 #endif
 
-
-#endif
+#endif   //#ifndef  __kcmsis_h__

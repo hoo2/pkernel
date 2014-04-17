@@ -26,57 +26,91 @@
 
 /* ===============  Compiler specific Intrinsics  =============== */
 
-
-#if defined ( __CC_ARM   ) /*------------------RealView Compiler -----------------*/
-/* ARM armcc specific functions */
-
-/*!
- * \brief  Set the Base Priority value
- * \param  basePri  BasePriority
- */
-__ASM void __kset_BASEPRI(uint32_t basePri)
-{
-  msr basepri, r0
-  bx lr
-}
-
-#elif (defined (__ICCARM__)) /*------------------ ICC Compiler -------------------*/
-/* IAR iccarm specific functions */
-#pragma diag_suppress=Pe940
-
-/*!
- * \brief  Set the Base Priority value
- * \param  basePri  BasePriority
- */
-__ASM void __kset_BASEPRI(uint32_t basePri)
-{
-  msr basepri, r0
-  bx lr
-}
-
-#pragma diag_default=Pe940
-
-#elif (defined (__GNUC__)) /*------------------ GNU Compiler ---------------------*/
-/* GNU gcc specific functions */
-
 /*!
  * \brief Set the Base Priority value.
  * \param value  BasePriority
  */
 void __kset_BASEPRI(uint32_t value)
 {
-  __ASM volatile (
+  __asm volatile (
         "MSR basepri, %0   \n\t"
         "BX lr             \n\t" : : "r" (value) );
 }
 
-#elif (defined (__TASKING__)) /*------------------ TASKING Compiler ---------------------*/
-/* TASKING carm specific functions */
+/*!
+ * \brief  Get the priority mask bit in the priority mask register
+ * \return PRIMASK value
+ */
+uint32_t __kget_PRIMASK(void)
+{
+  uint32_t res=0;
+  __asm volatile ("MRS %0, primask  \n\t"
+                  "MOV r0, %0       \n\t"
+                  "BX  lr           \n\t" : "=r" (res) );
+  return res;
+}
 
-/*
- * The CMSIS functions have been implemented as intrinsics in the compiler.
- * Please use "carm -?i" to get an up to date list of all instrinsics,
- * Including the CMSIS ones.
+/*!
+ * \brief  Set the priority mask bit in the priority mask register
+ * \param  pmsk  PRIMASK value
+ */
+void __kset_PRIMASK(uint32_t pmsk)
+{
+   __asm volatile ("MSR primask, %0 \n\t"
+                   "BX  lr          \n\t" : : "r" (pmsk) );
+}
+
+/*!
+ * \brief  Return the content of the fault mask register
+ * \return FaultMask
+ */
+uint32_t __kget_FAULTMASK(void)
+{
+  uint32_t res=0;
+
+  __asm volatile ("MRS %0, faultmask \n\t"
+                  "MOV r0, %0        \n\t"
+                  "BX  lr            \n\t" : "=r" (res) );
+  return res;
+}
+
+/*!
+ * \brief  Set the fault mask register
+ * \param  fmsk  faultMask value
+ */
+void __kset_FAULTMASK(uint32_t fmsk)
+{
+   __asm volatile ("MSR faultmask, %0 \n\t"
+                   "BX  lr            \n\t" : : "r" (fmsk) );
+}
+
+/*!
+ * \brief  Returns true if we are in privilege mode
+ */
+uint8_t __kPrivilege(void)
+{
+   uint32_t  r;
+
+   __asm volatile ("MRS %0, control \n\t" : "=r" (r) );
+   r &= 0x01;
+   return (!r);
+}
+
+/**
+ * @brief  Return the Main Stack Pointer
+ *
+ * @return Main Stack Pointer
+ *
+ * Return the current value of the MSP (main stack pointer)
+ * Cortex processor register
  */
 
-#endif
+uint32_t __kget_MSP(void)
+{
+  uint32_t result=0;
+
+  __asm volatile ("MRS %0, msp\n\t"
+                  "MOV r0, %0 \n\t"
+                  "BX  lr     \n\t"  : "=r" (result) );
+  return(result);
+}
