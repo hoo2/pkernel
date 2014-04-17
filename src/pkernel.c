@@ -24,6 +24,8 @@
 
 #include <pkernel.h>
 
+volatile kernel_var_t   kernel_vars;
+
 /*!
  * \brief Create a new process. Try to allocate memory and proc space.
  * On success returns the pid of the new process, else returns 0.

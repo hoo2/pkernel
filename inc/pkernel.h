@@ -94,15 +94,23 @@ extern void unlock (sem_t *m);
 
 extern void *malloc (size_t __size);
 extern void free (void* p);
-extern void *calloc(size_t N, size_t __size);
+extern void *calloc (size_t N, size_t __size);
 extern void *realloc (void * __r, size_t __size);
 
 extern void service_add (service_t fptr, clock_t every);
 extern void service_rem (service_t fptr);
 extern void crontab (process_ptr_t fptr, size_t ms, int8_t nice, int8_t fit, uint8_t pr, time_t at, time_t every);
 extern void crontab_r (process_ptr_t fptr);
-extern void microntab (micronfun_t fptr, clock_t every);
-extern void microntab_r (micronfun_t fptr);
+
+extern void sleepmode (void);
+extern void stopmode (void);
+extern void servicemode (void);
+extern void applicationmode (void);
+
+extern void set_presleep (callback_t fptr);
+extern void set_postsleep (callback_t fptr);
+extern void set_prestop (callback_t fptr);
+extern void set_poststop (callback_t fptr);
 
 #ifdef __cplusplus
 }

@@ -175,15 +175,29 @@ typedef struct cron_list
    cron_t *tail;
 }cron_list_t;
 
-/*!
- * Type for micron list
- */
-typedef struct micron
+typedef enum
 {
-   micronfun_t    fptr;
-   clock_t        every;
-   struct micron  *prev, *next;
-}micron_t;
+   IDLE_RUN=0,
+   IDLE_SLEEP,
+   IDLE_STOP
+}idle_mode_en;
+
+
+typedef struct kernel_vars
+{
+   idle_mode_en   idle_mode;
+   int            def_time_slice;
+}kernel_var_t;
+
+typedef void (*callback_t) (void);
+
+typedef struct callbacks
+{
+   callback_t  presleep;
+   callback_t  postsleep;
+   callback_t  prestop;
+   callback_t  poststop;
+}callbacks_t;
 
 #ifdef __cplusplus
 }

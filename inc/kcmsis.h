@@ -107,6 +107,11 @@ typedef struct
 #define kSCB_SHCSR_SYSTICKACT_Pos           11                                             /*!< SCB SHCSR: SYSTICKACT Position */
 #define kSCB_SHCSR_SYSTICKACT_Msk           (1ul << kSCB_SHCSR_SYSTICKACT_Pos)              /*!< SCB SHCSR: SYSTICKACT Mask */
 
+#define kSCB_SCR_SLEEPDEEP_Pos              (2)
+#define kSCB_SCR_SLEEPDEEP_Msk              (1ul << kSCB_SCR_SLEEPDEEP_Pos)
+
+#define kSCB_SCR_SLEEPONEXIT_Pos            (1)
+#define kSCB_SCR_SLEEPONEXIT_Msk            (1ul << kSCB_SCR_SLEEPONEXIT_Pos)
 
 /*!
  * struct to access SysTick registers

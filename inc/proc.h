@@ -29,10 +29,13 @@
 #include <pkdefs.h>
 #include <alloc.h>
 #include <stddef.h>
+#include <pmcs.h>
+
 
 #define IDLE_PROC_ID       (0)
 #define TIMESLICE_TICKS    (10)
 
+extern volatile kernel_var_t   kernel_vars;
 extern void exit (int status);
 
 /*

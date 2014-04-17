@@ -220,7 +220,18 @@ void proc_dec_ticks (pid_t pid)
 void proc_idle (void)
 {
    while (1)
-      ;
+      switch (kernel_vars.idle_mode)
+      {
+         default:
+         case IDLE_RUN:
+            break;
+         case IDLE_SLEEP:
+            sleepmode();
+            break;
+         case IDLE_STOP:
+            stopmode();
+            break;
+      }
 }
 
 /*!
