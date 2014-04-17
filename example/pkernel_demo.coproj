@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<Project version="2G" name="pkernel">
-  <Target name="pkernel" isCurrent="1">
-    <Device manufacturerId="9" manufacturerName="ST" chipId="256" chipName="STM32F100R8" boardId="" boardName=""/>
+<Project version="2G" name="pkernel_demo">
+  <Target name="pkernel_demo" isCurrent="1">
+    <Device manufacturerId="9" manufacturerName="ST" chipId="252" chipName="STM32F100C8" boardId="" boardName=""/>
     <BuildOption>
       <Compile>
         <Option name="OptimizationLevel" value="0"/>
@@ -9,28 +9,37 @@
         <Option name="UserEditCompiler" value=""/>
         <Includepaths>
           <Includepath path="."/>
-          <Includepath path="inc"/>
+          <Includepath path="../inc"/>
+          <Includepath path="../../devices/stm32f10x_stdperiph_driver/inc"/>
+          <Includepath path="../../devices/cmsis/device/st/stm32f10x/include"/>
         </Includepaths>
-        <DefinedSymbols/>
+        <DefinedSymbols>
+          <Define name="TICK_FREQ=1000"/>
+          <Define name="CLOCK=8000000"/>
+          <Define name="STM32F100C8"/>
+          <Define name="STM32F10X_MD_VL"/>
+        </DefinedSymbols>
       </Compile>
       <Link useDefault="0">
         <Option name="DiscardUnusedSection" value="0"/>
         <Option name="UserEditLinkder" value=""/>
         <Option name="UseMemoryLayout" value="1"/>
         <Option name="Library" value="Not use C Library"/>
-        <LinkedLibraries/>
+        <LinkedLibraries>
+          <Libset dir="..\obj\pkernel\debug\bin\" libs="pkernel"/>
+        </LinkedLibraries>
         <MemoryAreas debugInFlashNotRAM="1">
           <Memory name="IROM1" type="ReadOnly" size="0x00010000" startValue="0x08000000"/>
           <Memory name="IRAM1" type="ReadWrite" size="0x00002000" startValue="0x20000000"/>
           <Memory name="IROM2" type="ReadOnly" size="" startValue=""/>
           <Memory name="IRAM2" type="ReadWrite" size="" startValue=""/>
         </MemoryAreas>
-        <LocateLinkFile path="c:/coocox/coide/configuration/programdata/pkernel/arm-gcc-link.ld" type="0"/>
+        <LocateLinkFile path="c:/coocox/coide/configuration/programdata/pkernel_demo/arm-gcc-link.ld" type="0"/>
       </Link>
       <Output>
-        <Option name="OutputFileType" value="1"/>
-        <Option name="Path" value="obj/"/>
-        <Option name="Name" value="pkernel"/>
+        <Option name="OutputFileType" value="0"/>
+        <Option name="Path" value="./"/>
+        <Option name="Name" value="pkernel_demo"/>
         <Option name="HEX" value="1"/>
         <Option name="BIN" value="1"/>
       </Output>
@@ -57,33 +66,17 @@
       <Option name="org.coocox.codebugger.gdbjtag.core.verify" value="1"/>
       <Option name="org.coocox.codebugger.gdbjtag.core.downloadFuction" value="Erase Effected"/>
       <Option name="org.coocox.codebugger.gdbjtag.core.defaultAlgorithm" value="STM32F10x_MD_64.elf"/>
+      <Option name="org.coocox.codebugger.gdbjtag.coredebugInRamInitCommands" value="cd D:/Dropbox/Work/Libraries/pkernel/example/pkernel_demo/Debug/bin restore pkernel_demo.elf set {unsigned int*}0xE000ED08 = 0x20000000 set $sp = {unsigned int*}0x20000000 set $pc = {unsigned int*}0x20000004 "/>
     </DebugOption>
     <ExcludeFile/>
   </Target>
   <Components path="./"/>
   <Files>
-    <File name="src/os.c" path="src/os.c" type="1"/>
-    <File name="src/alloc.c" path="src/alloc.c" type="1"/>
-    <File name="inc/sched.h" path="inc/sched.h" type="1"/>
-    <File name="inc/sem.h" path="inc/sem.h" type="1"/>
-    <File name="inc/proc.h" path="inc/proc.h" type="1"/>
-    <File name="inc/pkdefs.h" path="inc/pkdefs.h" type="1"/>
-    <File name="src/cron.c" path="src/cron.c" type="1"/>
-    <File name="src" path="" type="2"/>
-    <File name="inc/ktime.h" path="inc/ktime.h" type="1"/>
-    <File name="inc/cron.h" path="inc/cron.h" type="1"/>
-    <File name="inc/kcmsis.h" path="inc/kcmsis.h" type="1"/>
-    <File name="src/pkernel.c" path="src/pkernel.c" type="1"/>
-    <File name="src/kcmsis.c" path="src/kcmsis.c" type="1"/>
-    <File name="src/proc.c" path="src/proc.c" type="1"/>
-    <File name="src/sched.c" path="src/sched.c" type="1"/>
-    <File name="inc" path="" type="2"/>
-    <File name="inc/os.h" path="inc/os.h" type="1"/>
-    <File name="inc/pkernel.h" path="inc/pkernel.h" type="1"/>
-    <File name="inc/alloc.h" path="inc/alloc.h" type="1"/>
-    <File name="src/pmcs.c" path="src/pmcs.c" type="1"/>
-    <File name="src/sem.c" path="src/sem.c" type="1"/>
-    <File name="inc/pmcs.h" path="inc/pmcs.h" type="1"/>
-    <File name="src/ktime.c" path="src/ktime.c" type="1"/>
+    <File name="main.h" path="main.h" type="1"/>
+    <File name="startup_stm32f10x_md_vl.c" path="../../Devices/CMSIS/Device/ST/STM32F10x/startup/gcc/startup_stm32f10x_md_vl.c" type="1"/>
+    <File name="pkernel.h" path="../inc/pkernel.h" type="1"/>
+    <File name="core_cm3.h" path="../../Devices/CMSIS/Include/core_cm3.h" type="1"/>
+    <File name="system_stm32f10x.c" path="../../Devices/CMSIS/Device/ST/STM32F10x/system_stm32f10x.c" type="1"/>
+    <File name="main.c" path="main.c" type="1"/>
   </Files>
 </Project>

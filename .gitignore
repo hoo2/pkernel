@@ -1,0 +1,10 @@
+# Basic binary
+*/obj/*
+*/bin/*
+*.a
+*.o
+
+# add examples obj folder
+*/example/pkernel_demo/*
+
+
