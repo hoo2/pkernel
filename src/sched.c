@@ -43,7 +43,7 @@ static proc_list_t    susq;
  * - Check priorities between the suspended process and current process
  * - Wake up by inserting the process to the "correct" place in runq and
  * remove it from susq
- * - Round the runq if needed. (ticks_left is 0).
+ * - Round the runq if needed. (time_slice is 0).
  *
  * \return the pid of the selected process to run.
  * \note Schedule is called from PendSV only.
@@ -67,17 +67,17 @@ pid_t schedule(void)
       else                          // There is others, check niceness.
       {
          /*
-          * Find first spot in front of a non zero ticks_left process
+          * Find first spot in front of a non zero time_slice process
           * with bigger niceness than wp.
           * \note
-          *    We leave zero ticks_left process out, because the rest of
+          *    We leave zero time_slice process out, because the rest of
           *    the scheduler will roll them.
           */
          p = runq.head;
          ins = 1;
          while (ins && p)
          {
-            if (p->ticks_left && (wp->nice < p->nice))
+            if (p->time_slice && (wp->nice < p->nice))
             {
                sch_list_ins (&runq, wp, p);
                ins = 0;
@@ -93,7 +93,7 @@ pid_t schedule(void)
    if (sch_runq_empty ())
       pid = 0;
    // If we are here check ticks to roll the process
-   else if (runq.head->ticks_left <= 0)
+   else if (runq.head->time_slice <= 0)
    {
       // start a new timeslice
       proc_rst_ticks (runq.head->id);

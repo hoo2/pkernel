@@ -115,7 +115,7 @@ typedef struct process
    int8_t         is;      /*!< process exists flag. */
    uint8_t        pr;      /*!< Privilege flag */
 
-   int            ticks_left;
+   int            time_slice;
    int8_t         nice;    /*!< Gives priority level -10..10. */
    int8_t         fit;     /*!< Gives time slice level -10..10. */
 

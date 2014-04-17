@@ -163,7 +163,7 @@ process_t *proc_get_process (pid_t pid)
 }
 
 /*!
- * \brief Reset ticks_left parameter of the process with pid @a pid.
+ * \brief Reset time_slice parameter of the process with pid @a pid.
  * \param pid The pid of the process.
  */
 void proc_rst_ticks (pid_t pid)
@@ -171,12 +171,12 @@ void proc_rst_ticks (pid_t pid)
    process_t *p = proc + pid;
 
    if (p->fit >= 0)
-      p->ticks_left = (0.1*p->fit+1) * TIMESLICE_TICKS;
+      p->time_slice = (0.1*p->fit+1) * TIMESLICE_TICKS;
    else
-      p->ticks_left = (0.05*p->fit+1) * TIMESLICE_TICKS;
+      p->time_slice = (0.05*p->fit+1) * TIMESLICE_TICKS;
 
-   if (p->ticks_left < 1)
-      p->ticks_left = 1;
+   if (p->time_slice < 1)
+      p->time_slice = 1;
 }
 
 /*!
@@ -186,7 +186,7 @@ void proc_rst_ticks (pid_t pid)
 void proc_dec_ticks (pid_t pid)
 {
    process_t *p = proc + pid;
-   p->ticks_left--;
+   p->time_slice--;
 }
 
 /*!
