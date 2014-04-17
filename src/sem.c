@@ -53,9 +53,9 @@ static sem_t* sopen(int v)
  * \param None
  * \return Pointer to semaphore on success, NULL if no space.
 */
-inline sem_t* sem_open(void)
+inline sem_t* sem_open(int v)
 {
-   return sopen (0);
+   return sopen (v);
 }
 
 /*!
@@ -65,21 +65,21 @@ inline sem_t* sem_open(void)
  * \param None
  * \return Pointer to mutex on success, NULL if no space.
 */
-inline sem_t* mut_open (void)
+inline sem_t* mut_open (int v)
 {
-   return sopen (1);
+   return sopen (v);
 }
 
 /*!
  * \brief Close semaphore. If semaphore's value don't indicate
- * a locking state(val<=0), then clears it.
+ * a locking state(val<0), then clears it.
  *
  * \param s Semaphore to close.
  * \return Positive on success, 0 if the semaphore is locked.
 */
 int sem_close (sem_t *s)
 {
-   if (s->val>0)
+   if (s->val>=0)
    {
       free ((void*)s);
       return 1;

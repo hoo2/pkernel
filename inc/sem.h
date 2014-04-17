@@ -29,8 +29,8 @@
 #include <sched.h>
 
 
-sem_t* sem_open(void);
-sem_t* mut_open (void);
+sem_t* sem_open(int v);
+sem_t* mut_open (int v);
 int    sem_close (sem_t *s);
 
 

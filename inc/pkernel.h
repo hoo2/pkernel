@@ -81,8 +81,8 @@ extern clock_t get_freq (void);
 extern void    set_freq (clock_t f);
 extern void    update_freq (clock_t f);
 
-extern sem_t* sem_open(void);
-extern sem_t* mut_open (void);
+extern sem_t* sem_open (int v);
+extern sem_t* mut_open (int v);
 extern int    sem_close (sem_t *s);
 
 extern void exit (int status);

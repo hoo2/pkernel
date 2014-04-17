@@ -212,6 +212,7 @@ static inline void kSetPriority(int32_t IRQn, uint32_t priority)
    kSCB->SHP[((uint32_t)(IRQn) & 0xF)-4] = ((priority << (8 - __kNVIC_PRIO_BITS)) & 0xff);
 }
 
+uint32_t __kget_MSP(void) __attribute__( ( naked ) );
 
 /* ==================    Reset function  ================== */
 

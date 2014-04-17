@@ -196,14 +196,12 @@ void wait (sem_t *s)
 {
    process_t *p;
 
-   if (s->val <=0)
+   if (--s->val<0)
    {
       p = proc_get_current_proc ();
       p->sem = s;
       OS_Call (p, OS_SUSPEND);
    }
-   else
-      s->val--;
 }
 
 /*!
@@ -226,8 +224,8 @@ void signal (sem_t *s)
  * \return None
  * \note Thread safe, not reentrant.
  */
-inline void lock (sem_t *s){
-   return wait(s);
+inline void lock (sem_t *s) {
+   wait (s);
 }
 
 
