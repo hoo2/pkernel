@@ -32,11 +32,14 @@ void pr_2 (void) {
    }
 }
 int main (void) {
-   kinit ((size_t)320, CLOCK, TICK_FREQ);
-   knew (&pr_1, (size_t)320, 1, 0);
-   knew (&pr_2, (size_t)320, 1, 0);
-   krun ();
+   // init with 320bytes kernel stack, TICK_FREQ for system frequency and MCU clock = CLOCK
+   kinit ((size_t)320, CLOCK, TICK_FREQ);  
+   knew (&pr_1, (size_t)320, 1, 0);    // 320 byte stack for pr_1(), set "nice" flag and not set "fit" flag
+   knew (&pr_2, (size_t)320, 1, 0);    // 320 byte stack for pr_1(), set "nice" flag and not set "fit" flag
+   krun ();    // start pkernel
    while (1);  // Unreachable.
 }
 
 ```
+In the above example we create 2 process functions pr_1() and pr_2(). In the main function we initialize pkernel with the desired memory size for privileged process stack (idle process for example), the desired pkernel frequency (TICK_FREQ) and the hardware CLOCK of the MCU.
+Next we register the two processes with 320 bytes of stack for each and run the kernel. After that point we will never return to main.
