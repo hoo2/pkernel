@@ -1,7 +1,7 @@
 /*
  * ktime.h : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -30,22 +30,22 @@
 #endif
 
 #include <kcmsis.h>
-//#include <time.h>
+#include <time.h>
 
 /* =================== Data types ===================== */
 
 /*
  * Also defined in types.h
  */
-#ifndef  _CLOCK_T_
-#define  _CLOCK_T_   unsigned long     /* clock() */
-#endif
-#ifndef _TIME_T_
-#define  _TIME_T_ long                 /* time() */
-#endif
-
-typedef _CLOCK_T_ clock_t;             /*!< CPU time type */
-typedef _TIME_T_ time_t;               /*!< date/time in unix secs past 1-Jan-70 type for 68 years*/
+//#ifndef  _CLOCK_T_
+//#define  _CLOCK_T_   unsigned long     /* clock() */
+//#endif
+//#ifndef _TIME_T_
+//#define  _TIME_T_ long                 /* time() */
+//#endif
+//
+//typedef _CLOCK_T_ clock_t;             /*!< CPU time type */
+//typedef _TIME_T_ time_t;               /*!< date/time in unix secs past 1-Jan-70 type for 68 years*/
 
 extern clock_t  volatile Ticks;        /*!< CPU time */
 extern time_t   volatile Now;          /*!< time in unix secs past 1-Jan-70 */

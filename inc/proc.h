@@ -1,7 +1,7 @@
 /*
  * proc.h : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -35,7 +35,6 @@
 #define IDLE_PROC_ID       (0)
 #define TIMESLICE_TICKS    (10)
 
-extern volatile kernel_var_t   kernel_vars;
 extern void exit (int status);
 
 /*
@@ -55,7 +54,13 @@ process_t *proc_get_current_proc(void);
 process_t *proc_get_process(pid_t pid);
 
 // API to os.c/h
-void     context_switch(uint32_t s) __attribute__( ( naked ) );
+uint32_t kget_MSP (void) __attribute__( ( naked ) );
+uint32_t kget_PSP (void) __attribute__( ( naked ) );
+void     kset_MSP (uint32_t s) __attribute__( ( naked ) );
+void     kset_PSP (uint32_t s) __attribute__( ( naked ) );  // used for contex_switch
+
+void     pproc_load_ctx(void) __attribute__( ( naked ) );
+uint32_t pproc_save_ctx(void) __attribute__( ( naked ) );
 void     proc_load_ctx(void) __attribute__( ( naked ) );
 uint32_t proc_save_ctx(void) __attribute__( ( naked ) );
 uint32_t proc_sel_stack (pid_t pid);

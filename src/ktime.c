@@ -1,7 +1,7 @@
 /*
  * ktime.c : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -34,8 +34,11 @@ static clock_t  volatile kfreq;        /*!< The kernels frequency */
 void kinit_SysTick (void)
 {
    // Time base configuration and enable
-   kSysTick->LOAD = (kcpu_clk / 8) / kfreq;
-   kSysTick->CTRL |= kSysTick_CTRL_ENABLE_Msk + kSysTick_CTRL_TICKINT_Msk;
+   kSysTick->LOAD = kcpu_clk / kfreq;
+   kSysTick->VAL  = 0;
+   kSysTick->CTRL = kSysTick_CTRL_CLKSOURCE_Msk |
+                    kSysTick_CTRL_TICKINT_Msk   |
+                    kSysTick_CTRL_ENABLE_Msk;
 }
 
 /*!
@@ -68,7 +71,7 @@ void update_freq (clock_t f)
    if (kfreq != f)
    {
       kfreq = f;
-      kSysTick->LOAD = (kcpu_clk / 8) / kfreq;
+      kSysTick->LOAD = kcpu_clk / kfreq;
    }
 }
 
@@ -102,7 +105,7 @@ void update_clock (clock_t clk)
    if (kcpu_clk != clk)
    {
       kcpu_clk = clk;
-      kSysTick->LOAD = (kcpu_clk / 8) / kfreq;
+      kSysTick->LOAD = kcpu_clk / kfreq;
    }
 }
 

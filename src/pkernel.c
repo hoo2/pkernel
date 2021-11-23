@@ -1,7 +1,7 @@
 /*
  * pkernel.c : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -24,7 +24,7 @@
 
 #include <pkernel.h>
 
-volatile kernel_var_t   kernel_vars;
+kernel_var_t kernel_vars;
 
 /*!
  * \brief Create a new process. Try to allocate memory and proc space.
@@ -60,9 +60,9 @@ pid_t knew (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit)
  * - Create the idle process. Allocator though will
  * not give heap though before pkernel_run().
  *
- * \param __kmsize The pkernels size (aka the idle process stack size).
- * \param clk The CPU clock used by application.
- * \param os_f The OS freq requested by application.
+ * \param kmsize    The pkernel's stack size for ISR and services
+ * \param clk       The CPU clock used by application.
+ * \param os_f      The OS freq requested by application.
  *
  * \return 0(proc_idle's pid) on success.
  */
@@ -75,15 +75,15 @@ int kinit (size_t kmsize, clock_t clk, clock_t os_f)
 
    set_clock (clk);     // Set kernel's knowledge for clocking and freq
    set_freq (os_f);
-   alloc_init ();       // Init the Stack allocation table.
+   alloc_init (kmsize); // Init the Stack allocation table.
 
    // Make the idle proc
-   pid = proc_newproc ((process_ptr_t)&proc_idle, kmsize, 0, 0);
+   pid = proc_newproc ((process_ptr_t)&proc_idle, IDLE_STACK_SIZE, 0, 0);
    /*
     * \note
     * We make sure that we are outside off ANY process (cur_pid=-1)
     * so the idle's proc[0].tcb.sp remains untouched by PendSV until
-    * our first context_switch from idle.
+    * our first context_switch.
     */
    proc_set_current_pid(-1);
    return (int)pid; // Must be 0 (idle's pid)
@@ -97,7 +97,7 @@ int kinit (size_t kmsize, clock_t clk, clock_t os_f)
  */
 void krun (void)
 {
-   kinit_SysTick (); // Configure and start SysTick
+   kinit_SysTick ();                // Configure and start SysTick
 
    /*
     * We have now SysTick, so we Permit malloc, set boot flag and trigger PendSV
@@ -105,14 +105,15 @@ void krun (void)
     */
    __malloc_unlock ();
    set_al_boot ();
-   __pendsv_trig();  // PendSV request
-   while (1)   // Stay here until OS starts.
+   kset_PSP (kget_MSP ());          // Prepare SPs
+   kset_MSP ((uint32_t)&_estack);
+   __pendsv_trig();                 // PendSV request
+   while (1)                        // Stay here until OS starts.
       ;
    /*
     * \info
     * The kernel will not return to this thread again.
     * If there is no process to run it will force the proc_idle().
-    * proc_idle() has its own stack (a.k.a kernel's stack) by
-    * kinit (KERNELS_SIZE, clk, os_f) call.
+    * proc_idle() has its own stack set by kinit () call.
     */
 }

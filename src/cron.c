@@ -1,7 +1,7 @@
 /*
  * cron.c : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       06/2013
  * Version:
  *
@@ -26,9 +26,6 @@
 
 static service_list_t  servl;
 static cron_list_t     cronl;
-
-static uint8_t cron_stretch;
-static uint8_t service_lock;
 
 /*!
  * \brief   Adds a function to Service list
@@ -47,7 +44,7 @@ void service_add (service_t fptr, clock_t every)
       return;
 
    // Add the service node to the service list
-   service_lock = 1;
+   kernel_vars.service_lock = 1;
    /*
     * Service lock for list manipulation.
     * It's OK to loose "some" ticks when we configure services.
@@ -64,7 +61,7 @@ void service_add (service_t fptr, clock_t every)
    // Fill micron values
    m->every = every;
    m->fptr = fptr;
-   service_lock = 0;
+   kernel_vars.service_lock = 0;
 }
 
 /*!
@@ -82,7 +79,7 @@ void service_rem (service_t fptr)
       return;
 
    // Remove it
-   service_lock = 1;
+   kernel_vars.service_lock = 1;
    /*
     * Service lock for list manipulation.
     * It's OK to loose "some" ticks when we configure services.
@@ -95,7 +92,7 @@ void service_rem (service_t fptr)
       servl.head = m->next;
    if(servl.tail == m)
       servl.tail = m->prev;
-   service_lock = 0;
+   kernel_vars.service_lock = 0;
    free (m);
 }
 
@@ -108,7 +105,7 @@ void services (void)
 {
    service_item_t *m = servl.head;
 
-   if (!m || service_lock)
+   if (!m || kernel_vars.service_lock)
       return;     // Service lock, or no service list. Aboard!
 
    // Find node to call
@@ -138,7 +135,7 @@ void crontab ( process_ptr_t fptr, size_t ms,
       return;
 
    // Add the cron node to the cron list
-   cron_stretch = 1;
+   kernel_vars.cron_stretch = 1;
    /*
     * Cron stretching for list manipulation.
     * It's OK to loose "some" ticks when we configure cron.
@@ -160,7 +157,7 @@ void crontab ( process_ptr_t fptr, size_t ms,
    m->pr = pr;
    m->at = at;
    m->every = every;
-   cron_stretch = 0;
+   kernel_vars.cron_stretch = 0;
 }
 
 /*!
@@ -178,7 +175,7 @@ void crontab_r (process_ptr_t fptr)
       return;
 
    // Remove it
-   cron_stretch = 1;
+   kernel_vars.cron_stretch = 1;
    /*
     * Cron stretching for list manipulation.
     * It's OK to loose "some" ticks when we configure cron.
@@ -191,7 +188,7 @@ void crontab_r (process_ptr_t fptr)
       cronl.head = m->next;
    if(cronl.tail == m)
       cronl.tail = m->prev;
-   cron_stretch = 0;
+   kernel_vars.cron_stretch = 0;
    free (m);
 }
 
@@ -200,7 +197,7 @@ void crontab_r (process_ptr_t fptr)
  *    Returns the cron_postponed flag
  */
 inline uint8_t cron_stretching(void) {
-   return cron_stretch;
+   return kernel_vars.cron_stretch;
 }
 
 /*!
@@ -221,7 +218,7 @@ void cron (void)
        * malloc or proc[] is locked.
        * Aboart with cron stretching.
        */
-      cron_stretch = 1;
+       kernel_vars.cron_stretch = 1;
       return;
    }
    // Find process to create
@@ -231,7 +228,7 @@ void cron (void)
          // Call knew() if the process does not exist
          if (proc_search_pid (m->fptr) == -1)
             knew (m->fptr, m->ms, m->nice, m->fit);
-         cron_stretch = 0;
+         kernel_vars.cron_stretch = 0;
          /*!
           * \note
           * Yes! We can call knew(). But only if no one else has locked

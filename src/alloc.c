@@ -26,7 +26,7 @@
 
 
 static al_t al[ALLOC_SIZE];      /*!< Allocation table to hold the allocated ram blocks for stack or heap. */
-static uint8_t malock = 1;       /*!< Don't permit malloc before pkernel boot */
+static uint8_t malock = 0;       /*!< permit malloc before pkernel boot */
 static uint8_t al_boot_f = 0;    /*!< Flag to permit stack allocation before pkernel_run */
 
 /*=============  Static Functions ====================*/
@@ -37,7 +37,7 @@ static uint8_t al_boot_f = 0;    /*!< Flag to permit stack allocation before pke
 static void al_zeropad (char *p, size_t s)
 {
    char *zp;
-   for (zp=p; zp-p<s ; ++zp)
+   for (zp=p; (size_t)(zp-p)<s ; ++zp)
       *zp=0;
 }
 
@@ -139,7 +139,7 @@ inline void set_al_boot (void){
  * - The memory is aligned in size_t.
  * - For stack, the return block is placed in the upper memory space
  * of the available block.
- * - For heap it is placed in the bottom.
+ * - For heap it is placed at the bottom.
  *
  * \param sz Size in bytes to allocate.
  * \param mt AL_STACK, AL_HEAP
@@ -319,49 +319,51 @@ void *realloc (void *__r, size_t __size)
 
 /*!
  * \brief Initialize pkernel's stack and heap.
- * This functions reads the _eram and pulStack entries
+ * This functions reads the _estack and _ebss entries
  * in ld script and initialize the allocator.
  *
+ *                          <- _estack
+ *        ----------------
+ *       |      self      |
  *        ----------------                 ---
- *       |                | <- _eram        ^
+ *       |                |                 ^
  *       |                |                 | Stack
+ *            ...                           |
  *       |                |                 |
- *            ...
- *       |                |             pkernel's
- *       |                |
- *        -  -  -  -  -  -                  |
- *       |    Startup's   |                 | Heap
- *       |     stack      | <- pulStack     ,
+ *       |                |             pkernel's RAM
+ *       |                |                 |
+ *       |                |                 | Heap
+ *       |                | <- _ebss       \/
  *        ----------------                 ---
- *       |                | <- _ebss
  *       |                |
+ *       |     .bss       |
  *       |                | <- _sbss / _edata
  *        ----------------
  *       |                |
- *       |                |
+ *       |    .data       |
  *       |                | <- _sdata
  *       -----------------
  *
- * \param  None
+ * \param  self     Memory for pkernels MSP [bytes]
  * \retval None
  *
-
  */
-void alloc_init (void)
+void alloc_init (size_t self)
 {
-   uint8_t i;
+   unsigned long* btm = (unsigned long*)&_ebss;
+   unsigned long* top = (unsigned long*)&_estack;
+   top -= self / sizeof(top);
 
-   al[0].mem_ptr = (void*) &pulStack;
+   al[0].mem_ptr = (void*)btm;
    al[0].sz = 0;
    al[0].flag = MA_BOTTOM;
 
-   al[1].mem_ptr = (unsigned long*) &_eram;  // Ignore warning. It's OK :)
+   al[1].mem_ptr = (void*)top;
    al[1].sz = 0;
    al[1].flag = MA_TOP;
 
    // Init the rest al[] table to NULL
-   for (i=2; i<ALLOC_SIZE; ++i)
-   {
+   for (uint8_t i=2; i<ALLOC_SIZE; ++i) {
       al[i].mem_ptr = 0;
       al[i].flag = MA_UNUSED;
    }

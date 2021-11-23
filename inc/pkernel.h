@@ -1,7 +1,7 @@
 /*
  * pkernel.h : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -74,6 +74,9 @@ pid_t knew (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
 int   kinit (size_t kmsize, clock_t clk, clock_t os_f);
 void  krun (void);
 
+extern clock_t clock (void);
+extern time_t time (time_t *timer);
+
 extern clock_t get_clock (void);
 extern void    set_clock (clock_t clk);
 extern void    update_clock (clock_t clk);
@@ -88,7 +91,7 @@ extern int    sem_close (sem_t *s);
 extern void exit (int status);
 extern void sleep (clock_t t);
 extern void wait (sem_t *s);
-extern void signal (sem_t *s);
+extern void ksignal (sem_t *s);
 extern void lock (sem_t *s);
 extern void unlock (sem_t *m);
 

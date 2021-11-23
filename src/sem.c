@@ -1,7 +1,7 @@
 /*
  * sem.c : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -39,8 +39,10 @@ static sem_t* sopen(int v)
    sem_t* s;
 
    s = (sem_t*) malloc (sizeof (sem_t));
-   if (s)
+   if (s) {
       s->val = v;
+      _kBarier();
+   }
    return s;
 }
 
@@ -79,6 +81,7 @@ inline sem_t* mut_open (int v)
 */
 int sem_close (sem_t *s)
 {
+   _kBarier();
    if (s->val>=0)
    {
       free ((void*)s);

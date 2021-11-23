@@ -1,7 +1,7 @@
 /*
  * pkdefs.h : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -33,6 +33,7 @@
 #include <ktime.h>
 #include <stddef.h>
 
+
 /* =================== User Defines ===================== */
 
 #define  MAX_PROC                (0x10)   /*!< The maximum number of Process supported by pkernel. */
@@ -44,7 +45,7 @@
 
 /* ================     General Defines       ======================*/
 #define  ALLOC_SIZE                       (MAX_HEAP_ALLOCS+MAX_PROC)
-
+#define  IDLE_STACK_SIZE                  (96)  // [bytes]
 
 
 
@@ -53,10 +54,11 @@
 /*!
  * Semaphore data type
  */
-typedef volatile struct
-{
-   int val;          /*!< Semaphore value. */
+typedef struct sem {
+    volatile int val;   /*!< Semaphore value. */
 }sem_t;
+
+#define _kBarier()    __asm ("dmb ish \n\t")
 
 /*!
  * Hardware stack frame.
@@ -183,11 +185,16 @@ typedef enum
 }idle_mode_en;
 
 
-typedef struct kernel_vars
-{
-   idle_mode_en   idle_mode;
-   int            def_time_slice;
+typedef struct kernel_vars {
+    idle_mode_en    idle_mode;
+    int             def_time_slice;
+    pid_t           cur_pid;    /*!< pid of the currently executing process. The idle process's cur_pid is 0.*/
+    pid_t           last_pid;   /*!< pid of the last real process that was running, this should never become 0. */
+    volatile uint8_t prock;     /*!< proc lock flag. Set proc table is used. */
+    volatile uint8_t cron_stretch;
+    volatile uint8_t service_lock;
 }kernel_var_t;
+extern kernel_var_t   kernel_vars;
 
 typedef void (*callback_t) (void);
 
@@ -198,6 +205,7 @@ typedef struct callbacks
    callback_t  prestop;
    callback_t  poststop;
 }callbacks_t;
+
 
 #ifdef __cplusplus
 }

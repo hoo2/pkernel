@@ -1,7 +1,7 @@
 /*
  * pmcs.c : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       06/2013
  * Version:
  *
@@ -43,24 +43,24 @@ void sleepmode (void)
 
    if (callbacks.presleep)     // Call-back
       callbacks.presleep();
-   if (callbacks.postsleep && __kPrivilege())
+   if (callbacks.postsleep)// && __kPrivilege())
    {
       /*
        * If postsleep call-back exist we must configure interrupts
        * to execute after postsleep().
        * Only for privilege mode.
        */
-      fm = __kget_FAULTMASK ();
+      fm = __kget_FAULTMASK (); // read mask state
       pm = __kget_PRIMASK ();
-      __kset_FAULTMASK (0);
-      __kset_PRIMASK (1);
+      __kset_FAULTMASK (0);     // keep NMI
+      __kset_PRIMASK (1);       // disable configurable priority exceptions
    }
    __kWFI();
-   if (callbacks.postsleep && __kPrivilege())
+   if (callbacks.postsleep)// && __kPrivilege())
    {
       // Run call-back if any and release PRIMASK, FAULTMASK
       callbacks.postsleep ();
-      __kset_FAULTMASK (fm);
+      __kset_FAULTMASK (fm);    // restate exception masks
       __kset_PRIMASK (pm);
    }
 }
@@ -81,8 +81,8 @@ void stopmode (void)
 {
    uint32_t fm, pm;   // faultmask and primask
 
-   if (! __kPrivilege())      // No privilege, Aboard!
-      return;
+//   if (! __kPrivilege())      // No privilege, Aboard!
+//      return;
    if (callbacks.prestop)     // Call-back
       callbacks.prestop();
    if (callbacks.poststop)
@@ -91,10 +91,10 @@ void stopmode (void)
        * If poststop call-back exist we must configure interrupts
        * to execute after poststop().
        */
-      fm = __kget_FAULTMASK ();
-      pm = __kget_PRIMASK ();
-      __kset_FAULTMASK (0);
-      __kset_PRIMASK (1);
+       fm = __kget_FAULTMASK (); // read mask state
+       pm = __kget_PRIMASK ();
+       __kset_FAULTMASK (0);     // keep NMI
+       __kset_PRIMASK (1);       // disable configurable priority exceptions
    }
    // Set SLEEPDEEP flag and go to sleep
    kSCB->SCR |= kSCB_SCR_SLEEPDEEP_Msk;
@@ -106,7 +106,7 @@ void stopmode (void)
    {
       // Run call-back if any and release PRIMASK, FAULTMASK
       callbacks.poststop ();
-      __kset_FAULTMASK (fm);
+      __kset_FAULTMASK (fm);    // restate exception masks
       __kset_PRIMASK (pm);
    }
 }
@@ -130,8 +130,8 @@ void stopmode (void)
  */
 void servicemode (void)
 {
-   if (! __kPrivilege())      // No privilege, Aboard!
-      return;
+//   if (! __kPrivilege())      // No privilege, Aboard!
+//      return;
    if (callbacks.presleep)    // Call-back
       callbacks.presleep();
 
@@ -155,8 +155,8 @@ void servicemode (void)
  */
 void applicationmode (void)
 {
-   if (! __kPrivilege())   // No privilege, Aboard!
-      return;
+//   if (! __kPrivilege())   // No privilege, Aboard!
+//      return;
 
    // Clear SLEEPONEXIT flag
    kSCB->SCR &= ~kSCB_SCR_SLEEPONEXIT_Msk;

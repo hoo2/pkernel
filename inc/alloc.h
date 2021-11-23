@@ -1,7 +1,7 @@
 /*
  * alloc.h : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -31,8 +31,8 @@
 #include <kcmsis.h>
 #include <stddef.h>
 
-extern unsigned long _eram;               /*!< End address for ram provided by ld script. */
-extern unsigned long pulStack[];          /*!< Starting address of the stack provided by ld script. */
+extern unsigned long _estack;           /*!< End address for ram provided by ld script. */
+extern unsigned long _ebss;             /*!< Ending address of the bss section provided by ld script. */
 
 typedef  char *caddr_t;                   /*!< same as stdlib */
 
@@ -68,7 +68,7 @@ typedef enum
 
 void *m_al (size_t sz, al_mem_type_t mt);
 void m_fr (void* p);
-void alloc_init (void);
+void alloc_init (size_t self);
 
 void __malloc_lock (void);    // Spin locks
 void __malloc_unlock (void);

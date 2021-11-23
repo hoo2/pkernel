@@ -1,7 +1,7 @@
 /*
  * os.h : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -64,8 +64,11 @@ typedef enum
 /*
  * XXX: Do not change these values. OS runs in the
  * lowest priority level and PendSV is 15, so it always
- * run last and call BX 0xFFFFFFF9 to return in process,
+ * run last and call BX 0xFFFFFFF9/D to return in process,
  * NOT in ISR.
+ * SYSTICK is higher so we can cascade SYSTICK->PENDSV from inside sysTick
+ * by triggering PendSV. While PendSV has less priority NVIC will cascade
+ * it after sysTick
  */
 #define OS_PENDSV_PRI      (0x0F)
 #define OS_SYSTICK_PRI     (0x0E)
@@ -92,9 +95,8 @@ typedef enum
 /*
  * Exported Functions for inner use.
  */
-void SysTick_Handler(void);// __attribute__( ( naked ) );
+void SysTick_Handler(void);
 void PendSV_Handler(void) __attribute__( ( naked ) );
-void init_timer (void);
 
 void OS_Call (process_t *p, os_command_enum_t cmd);
 
@@ -104,7 +106,7 @@ void OS_Call (process_t *p, os_command_enum_t cmd);
 void exit (int status);
 void sleep (clock_t t);
 void wait (sem_t *s);
-void signal (sem_t *s);
+void ksignal (sem_t *s);
 void lock (sem_t *s);
 void unlock (sem_t *m);
 

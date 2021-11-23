@@ -1,7 +1,7 @@
 /*
  * proc.c : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -30,9 +30,9 @@
  */
 static process_t proc[MAX_PROC];
 
-static pid_t cur_pid;   /*!< pid of the currently executing process. The idle process's cur_pid is 0.*/
-static pid_t last_pid;  /*!< pid of the last real process that was running, this should never become 0. */
-static uint8_t prock;   /*!< proc lock flag. Set proc table is used. */
+//static pid_t cur_pid;   /*!< pid of the currently executing process. The idle process's cur_pid is 0.*/
+//static pid_t last_pid;  /*!< pid of the last real process that was running, this should never become 0. */
+//static uint8_t prock;   /*!< proc lock flag. Set proc table is used. */
 
 /*!
  * \breif Spin lock to make thread safe the malloc functionality.
@@ -41,9 +41,9 @@ static uint8_t prock;   /*!< proc lock flag. Set proc table is used. */
  */
 void __proc_lock (void)
 {
-   while (prock == 1)
+   while (kernel_vars.prock == 1)
       ;
-   prock = 1;
+   kernel_vars.prock = 1;
 }
 
 /*!
@@ -52,7 +52,7 @@ void __proc_lock (void)
  * \return None
  */
 inline void __proc_unlock (void){
-   prock = 0;
+    kernel_vars.prock = 0;
 }
 
 /*!
@@ -60,7 +60,35 @@ inline void __proc_unlock (void){
  * \return True if its locked
  */
 inline uint8_t __proc_state (void) {
-   return prock;
+   return kernel_vars.prock;
+}
+
+/*!
+ * \brief Push R4-R11 registers to MSP stack and returns the new SP
+ *
+ * \return The stack pointer
+ */
+uint32_t pproc_save_ctx (void) {
+   uint32_t result;
+
+   __asm volatile (
+         "MRS r0, MSP         \n\t"
+         "STMDB r0!, {r4-r11} \n\t"
+         "MSR MSP, r0         \n\t"
+         "MOV %0, r0          \n\t"
+         "BX  lr              \n\t" : "=r" (result) );
+   return result;
+}
+
+/*!
+ * \brief Pop R4-R11 registers from MSP stack and update the new SP
+ */
+void pproc_load_ctx (void) {
+   __asm volatile (
+         "MRS r0, MSP         \n\t"
+         "LDMFD r0!, {r4-r11} \n\t"
+         "MSR MSP, r0         \n\t"
+         "BX  lr              \n\t" );
 }
 
 /*!
@@ -73,12 +101,11 @@ uint32_t proc_save_ctx (void)
    uint32_t result;
 
    __asm volatile (
-         "MRS r0, msp         \n\t"
+         "MRS r0, PSP         \n\t"
          "STMDB r0!, {r4-r11} \n\t"
-         "MSR msp, r0         \n\t"
+         "MSR PSP, r0         \n\t"
          "MOV %0, r0          \n\t"
-         "BX  lr              \n\t"
-         : "=r" (result) );
+         "BX  lr              \n\t" : "=r" (result) );
    return result;
 }
 
@@ -88,20 +115,42 @@ uint32_t proc_save_ctx (void)
 void proc_load_ctx (void)
 {
    __asm volatile (
-         "MRS r0, msp         \n\t"
+         "MRS r0, PSP         \n\t"
          "LDMFD r0!, {r4-r11} \n\t"
-         "MSR msp, r0         \n\t"
+         "MSR PSP, r0         \n\t"
          "BX  lr              \n\t" );
 }
 
-/*!
- * \brief Change the SP to the new location
- */
-void context_switch (uint32_t s)
-{
+uint32_t kget_MSP (void) {
+    uint32_t r;
+
+    __asm volatile (
+        "MRS %0, MSP    \n\t"
+        "MOV r0, %0     \n\t"
+        "BX  lr         \n\t" : "=r" (r) );
+    return r;
+}
+
+uint32_t kget_PSP (void) {
+    uint32_t r;
+
+    __asm volatile (
+        "MRS %0, PSP    \n\t"
+        "MOV r0, %0     \n\t"
+        "BX  lr         \n\t" : "=r" (r) );
+    return r;
+}
+
+void kset_MSP (uint32_t s) {
    __asm volatile (
-         "MSR msp, %0  \n\t"
-         "BX  lr       \n\t" : : "r" (s) );
+         "MSR MSP, %0   \n\t"
+         "BX  lr        \n\t" : : "r" (s) );
+}
+
+void kset_PSP (uint32_t s) {
+   __asm volatile (
+         "MSR PSP, %0   \n\t"
+         "BX  lr        \n\t" : : "r" (s) );
 }
 
 /*!
@@ -113,7 +162,7 @@ uint32_t proc_sel_stack (pid_t pid)
    uint32_t stck = 0;
    process_t *new = proc + pid;
 
-   if (last_pid != pid)
+   if (kernel_vars.last_pid != pid)
       stck = new->tcb.sp;
    proc_set_current_pid (new->id);
 
@@ -138,7 +187,7 @@ void proc_store_stack_pointer (uint32_t sp)
  * \param The pid to set.
  */
 inline void proc_set_current_pid (pid_t pid){
-   cur_pid = last_pid = pid;
+    kernel_vars.cur_pid = kernel_vars.last_pid = pid;
 }
 
 /*!
@@ -146,7 +195,7 @@ inline void proc_set_current_pid (pid_t pid){
  * \return The current pid.
  */
 inline pid_t proc_get_current_pid (void){
-   return cur_pid;
+   return kernel_vars.cur_pid;
 }
 
 /*!
@@ -169,7 +218,7 @@ pid_t proc_search_pid (process_ptr_t fptr)
  */
 process_t *proc_get_current_proc (void)
 {
-   return cur_pid >= 0 ? &proc[cur_pid] : 0;
+   return kernel_vars.cur_pid >= 0 ? &proc[kernel_vars.cur_pid] : 0;
 }
 
 /*!

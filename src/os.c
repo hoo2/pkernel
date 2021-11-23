@@ -1,7 +1,7 @@
 /*
  * os.c : This file is part of pkernel
  *
- * Copyright (C) 2013 Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Copyright (C) 2013 Choutouridis Christos <houtouridis.ch@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author:     Houtouridis Christos <houtouridis.ch@gmail.com>
+ * Author:     Choutouridis Christos <houtouridis.ch@gmail.com>
  * Date:       03/2013
  * Version:
  *
@@ -66,28 +66,31 @@ void SysTick_Handler(void)
 }
 
 /*!
- * \brief This ISR handles PendSV. Actions:
+ * \brief This ISR handles PendSV.
+ *
+ * Actions:
  * - Save the active process's stack.
  * - Get the "correct" pid from scheduler
  * - If needed, context switching
  * - Load the stack for the "correct" process
  * - Return to Process.
- * *** This means that the PendSV must handled last by the NVIC ***
+ *
+ * \note This means that the PendSV must handled last by the NVIC
  *
  * \param  None
  * \retval None
  */
 void PendSV_Handler (void)
 {
-   uint32_t reg;
-   // \note linkreg is static so it lives between context switches
-
-   /*
+   uint32_t reg = proc_save_ctx ();
+   /*^
+    * \note reg is static so it lives between context switches
+    *
     * At this point NVIC has pushed the hw_stack_frame
     * We push lr and sw_stack_frame, and save the sp of it to
     * proc[].tcb.sp
     */
-   reg = proc_save_ctx ();
+
    proc_store_stack_pointer (reg);
 
    if (os_command.flags)         // Clear wait flags
@@ -96,17 +99,17 @@ void PendSV_Handler (void)
     * Get from scheduler the pid to run and check
     * if we have to change stack.
     */
-   reg = schedule ();
-   reg = proc_sel_stack (reg);
-   if (reg)
-      context_switch (reg);
+   if ((reg = proc_sel_stack (schedule ())) != 0)
+       kset_PSP (reg);
    /*
     * Load the sw_stack_frame of the process to run.
     * The NVIC will load the hw_stack_frame.
     */
    proc_load_ctx ();
    // Add custom epilogue to return from ISR
-   __asm volatile ("MOV lr, #0xFFFFFFF9 \n\t"
+   // 0xFFFFFFF9 : MSP priviledged
+   // 0xFFFFFFFD : PSP un-priviledged
+   __asm volatile ("MOV lr, #0xFFFFFFFD \n\t"
                    "BX lr               \n\t" );
 }
 
@@ -144,14 +147,14 @@ void OS_Call (process_t *p, os_command_enum_t cmd)
       /*
        * XXX: I know its not safe to make runq, susq write operations.
        * But for now we assume we are just after SysTick.
-       * In the near future OS_Call will discarded and SVC will take over.
+       * In the near future OS_Call will be discarded and SVC will take over.
        */
    }
    __os_resume_ISR();
    // Set flags, trigger PendSV and wait.
    os_command.flags |= 0x1 << cmd;
    __pendsv_trig ();
-   while (os_command.flags && (0x1<<cmd))
+   while (os_command.flags && (0x1 << cmd))
       ;
    return;
 }
@@ -166,6 +169,7 @@ void OS_Call (process_t *p, os_command_enum_t cmd)
  */
 void exit (int status)
 {
+   (void) status;
    process_t *p = proc_get_current_proc();
    OS_Call (p, OS_EXIT);
    while(1);   // for compatibility
@@ -192,6 +196,7 @@ void sleep (clock_t alarm)
    OS_Call (p, OS_SUSPEND);
 }
 
+
 /*!
  * \brief This function waits for a semaphore. If the semaphore
  *  is positive decreases it, if 0 then suspends the process.
@@ -204,8 +209,10 @@ void wait (sem_t *s)
 {
    process_t *p;
 
-   if (--s->val<0)
-   {
+   _kBarier();
+   int v = --s->val;
+   _kBarier();
+   if (v < 0) {
       p = proc_get_current_proc ();
       p->sem = s;
       OS_Call (p, OS_SUSPEND);
@@ -216,9 +223,11 @@ void wait (sem_t *s)
  * \brief Increase the semaphores value, but leave
  * the OS to awake the process.
  */
-void signal (sem_t *s)
+void ksignal (sem_t *s)
 {
+   _kBarier();
    ++s->val;
+   _kBarier();
    /*
     * \Note If value is positive we leave next tick's
     * scheduler to awake the related process.
@@ -243,8 +252,13 @@ inline void lock (sem_t *s) {
 */
 void unlock (sem_t *m)
 {
-   if (++m->val > 1) // Binary semaphore
+   _kBarier();
+   int v = ++m->val;
+   _kBarier();
+   if (v > 1) { // Binary semaphore
       m->val=1;
+      _kBarier();
+   }
    /*
     * \Note If value is positive we leave next tick's
     * scheduler to awake the related process.
