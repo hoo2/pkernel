@@ -28,10 +28,14 @@
 
 #include <sched.h>
 
-sem_t* sem_open(int v);
-sem_t* mut_open (int v);
-int    sem_close (sem_t *s);
+void sem_init (sem_t* s, int v);
+int  sem_close (sem_t *s);
+int  sem_getvalue (sem_t *s);
+int  sem_check (sem_t *s);
 
+void mut_init (sem_t* m);
+int  mut_close (sem_t *m);
+int  mut_trylock (sem_t *m);
 
 #endif //#ifndef __sem_h__
 

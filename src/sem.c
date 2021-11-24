@@ -25,69 +25,115 @@
 #include <sem.h>
 
 /*!
- * \brief Open semaphore. Try to find a space for a new semaphore.
- * If there is, then allocates it and initialize the semaphore to \a v
+ * \brief
+ *    Open/Initialize semaphore.
  *
- * \param v The initial value of semaphore.
- * \return Pointer to semaphore on success, NULL if no space.
- *
- * \note
- *    This function MUST NOT called within the pkernel's Interrupts
-*/
-static sem_t* sopen(int v)
-{
-   sem_t* s;
-
-   s = (sem_t*) malloc (sizeof (sem_t));
+ * \param s,   Pointer to semaphore to initialize
+ * \param v    The initial value of semaphore.
+ */
+static void _sinit (sem_t *s, int v) {
    if (s) {
       s->val = v;
-      _kBarier();
    }
-   return s;
 }
 
 
 /*!
- * \brief Open/Create semaphore. Try to find a space for a new semaphore.
- * If there is space in semaphore[], allocates it and initialize the
- * semaphore to 0.
+ * \brief
+ *    Open/Initialize semaphore.
+ * \note
+ *    The usual init value of a semaphore is 0.
  *
- * \param None
- * \return Pointer to semaphore on success, NULL if no space.
-*/
-inline sem_t* sem_open(int v)
-{
-   return sopen (v);
+ * \param s,   Pointer to semaphore to initialize
+ * \param v    The initial value of semaphore.
+ */
+inline void sem_init (sem_t* s, int v) {
+   _sinit (s, v);
 }
 
 /*!
- * \brief Open/Create a mutex(binary semaphore). Tryto find a space for a new mutex.
- * If there is space in semaphore[], allocates it and initialize the semaphore to 1 (unlocked).
+ * \brief
+ *    Close/De-Initialize a semaphore.
  *
- * \param None
- * \return Pointer to mutex on success, NULL if no space.
-*/
-inline sem_t* mut_open (int v)
-{
-   return sopen (v);
+ * \param   s,   Pointer to semaphore to close
+ * \return  0
+ */
+inline int sem_close (sem_t *s) {
+   return s->val = 0;
 }
 
 /*!
- * \brief Close semaphore. If semaphore's value don't indicate
- * a locking state(val<0), then clears it.
+ * \brief
+ *    Get semaphore's value without any interaction to it
  *
- * \param s Semaphore to close.
- * \return Positive on success, 0 if the semaphore is locked.
+ * \param  s pointer to semaphore used
+ * \return The semaphore value
+ */
+int sem_getvalue (sem_t *s) {
+    return s->val;
+}
+
+/*!
+ * \brief
+ *    This function checks for a semaphore value. If the semaphore
+ *    is positive decreases it and return true. Else return false
+ *
+ * \param  s        Pointer to semaphore used
+ * \return true     For positive semaphore value.
+ *
+ * \note Thread safe, not reentrant.
+ */
+int sem_check (sem_t *s) {
+    if (s->val > 0) {
+        --s->val;
+        return 1;
+    }
+    else
+        return 0;
+}
+
+/*!
+ * \brief
+ *    Open/Initialize mutex which is a binary semaphore for this implementation
+ * \note
+ *    The init value of a mutex is 1 (unlocked)
+ * \param m    Pointer to mutex to initialize
+ */
+inline void mut_init (sem_t* m) {
+    _sinit (m, 1);
+}
+
+/*!
+* \brief
+*    Close/De-Initialize a mutex.
+*
+* \param   m    Pointer to mutex to close
+* \return  0
 */
-int sem_close (sem_t *s)
-{
-   _kBarier();
-   if (s->val>=0)
-   {
-      free ((void*)s);
-      return 1;
-   }
-   return 0;
+int mut_close (sem_t *m) {
+    return m->val = 1;
+}
+
+/*!
+* \brief
+*    This function checks for a mutex.
+*    If its 1 (unlocked) decreases it and return true.
+*    Else return false (already locked)
+*
+* \param  s     Pointer to mutex used
+* \return the status of the operation
+*    \arg  0  Fail to lock, mutex already locked
+*    \arg  1  Success, mutex is locked by the function
+*
+* \note Thread safe, not reentrant.
+*/
+int mut_trylock (sem_t *m) {
+    if (m->val > 0) {
+        m->val = 0;
+        return 1;
+    }
+    else
+        return 0;
 }
 
 

@@ -105,10 +105,10 @@ void OS_Call (process_t *p, os_command_enum_t cmd);
  */
 void exit (int status);
 void sleep (clock_t t);
-void wait (sem_t *s);
-void ksignal (sem_t *s);
-void lock (sem_t *s);
-void unlock (sem_t *m);
+void sem_wait (sem_t *s);
+void sem_post (sem_t *s);
+void mut_lock (sem_t *m);
+void mut_unlock (sem_t *m);
 
 
 #endif //#ifndef __os_h__

@@ -141,7 +141,7 @@ process_t* sch_alarm (void)
       wu = 0;
       if (!p->alarm || p->alarm <= Ticks)
          ++wu;
-      if (!p->sem || (p->sem && p->sem->val>=0))
+      if (!p->sem || (p->sem && p->sem->val>0))
          ++wu;
       if (wu>1)
       {

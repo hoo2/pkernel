@@ -33,6 +33,17 @@
 #include <ktime.h>
 #include <stddef.h>
 
+#ifndef __cplusplus
+#include <stdatomic.h>
+#define pkernel_atomic  _Atomic
+#else
+#define pkernel_atomic
+//^ We leave it blank to prevent C++ compilation errors when the header is in scope.
+//
+//  All the pkernel files should compile with gcc. If C++ compilation units include
+//  this header they see pkernel_atomic blank. The type remains binary compatible
+//  so no extra effort is required.
+#endif
 
 /* =================== User Defines ===================== */
 
@@ -55,10 +66,8 @@
  * Semaphore data type
  */
 typedef struct sem {
-    volatile int val;   /*!< Semaphore value. */
+    pkernel_atomic int val;   /*!< Semaphore value. */
 }sem_t;
-
-#define _kBarier()    __asm ("dmb ish \n\t")
 
 /*!
  * Hardware stack frame.

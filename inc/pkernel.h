@@ -84,16 +84,20 @@ extern clock_t get_freq (void);
 extern void    set_freq (clock_t f);
 extern void    update_freq (clock_t f);
 
-extern sem_t* sem_open (int v);
-extern sem_t* mut_open (int v);
-extern int    sem_close (sem_t *s);
+extern void sem_init (sem_t* s, int v);
+extern int  sem_close (sem_t *s);
+extern int  sem_getvalue (sem_t *s);
+extern int  sem_check (sem_t *s);
+extern void mut_init (sem_t* m);
+extern int  mut_close (sem_t *m);
+extern int  mut_trylock (sem_t *m);
 
 extern void exit (int status);
 extern void sleep (clock_t t);
-extern void wait (sem_t *s);
-extern void ksignal (sem_t *s);
-extern void lock (sem_t *s);
-extern void unlock (sem_t *m);
+extern void sem_wait (sem_t *s);
+extern void sem_post (sem_t *s);
+extern void mut_lock (sem_t *s);
+extern void mut_unlock (sem_t *m);
 
 extern void *malloc (size_t __size);
 extern void free (void* p);

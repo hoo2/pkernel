@@ -201,48 +201,42 @@ void sleep (clock_t alarm)
  * \brief This function waits for a semaphore. If the semaphore
  *  is positive decreases it, if 0 then suspends the process.
  *
- * \param  s pointer to semaphore used
+ * \param  s    Pointer to semaphore used
  * \return None
  * \note Thread safe, not reentrant.
  */
-void wait (sem_t *s)
-{
+void sem_wait (sem_t *s) {
    process_t *p;
 
-   _kBarier();
-   int v = --s->val;
-   _kBarier();
-   if (v < 0) {
-      p = proc_get_current_proc ();
-      p->sem = s;
-      OS_Call (p, OS_SUSPEND);
+   if (s->val <= 0) {
+       p = proc_get_current_proc ();
+       p->sem = s;
+       OS_Call (p, OS_SUSPEND);
    }
+   // here s->val is always positive
+   --s->val;
 }
 
 /*!
  * \brief Increase the semaphores value, but leave
  * the OS to awake the process.
  */
-void ksignal (sem_t *s)
-{
-   _kBarier();
+void sem_post (sem_t *s) {
    ++s->val;
-   _kBarier();
    /*
-    * \Note If value is positive we leave next tick's
-    * scheduler to awake the related process.
+    * \Note we leave next tick's scheduler to awake the related process.
     */
 }
 
 /*!
  * \brief  This function waits for a mutex. If the mutex is
  * positive(1) decreases it, if 0 then suspends the process.
- * \param  s pointer to mutex used
+ * \param  m pointer to mutex used
  * \return None
  * \note Thread safe, not reentrant.
  */
-inline void lock (sem_t *s) {
-   wait (s);
+inline void mut_lock (sem_t *m) {
+   sem_wait (m);
 }
 
 
@@ -250,17 +244,9 @@ inline void lock (sem_t *s) {
  * Unlock (by setting high) the semaphore, but leave
  * the OS to awake the process.
 */
-void unlock (sem_t *m)
-{
-   _kBarier();
-   int v = ++m->val;
-   _kBarier();
-   if (v > 1) { // Binary semaphore
-      m->val=1;
-      _kBarier();
-   }
+void mut_unlock (sem_t *m) {
+    m->val =1;
    /*
-    * \Note If value is positive we leave next tick's
-    * scheduler to awake the related process.
+    * \Note we leave next tick's scheduler to awake the related process.
     */
 }
