@@ -76,6 +76,7 @@ void  krun (void);
 
 extern clock_t clock (void);
 extern time_t time (time_t *timer);
+extern int settime (const time_t *t);
 
 extern clock_t get_clock (void);
 extern void    set_clock (clock_t clk);

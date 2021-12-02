@@ -26,6 +26,7 @@
 
 clock_t  volatile Ticks = 0;           /* cpu time */
 time_t   volatile Now = 0;             /* time in unix secs past 1-Jan-70 */
+time_t   volatile pNow = 0;
 
 static os_command_t os_command;
 
@@ -49,10 +50,11 @@ void SysTick_Handler(void)
     */
    ++Ticks;
    services ();
-   if ( !(Ticks % get_freq ()))
-   {
-      ++Now;
-      cron ();
+   if ( !_ext_time && !(Ticks % get_freq ()))
+       ++Now;   // Do not update Now when we have external time system
+   if (pNow != time(0)) {
+       pNow = time(0);
+       cron ();
    }
    // In case of cron stretching call cron() continuously.
    if (cron_stretching())

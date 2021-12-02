@@ -50,6 +50,18 @@
 extern clock_t  volatile Ticks;        /*!< CPU time */
 extern time_t   volatile Now;          /*!< time in unix secs past 1-Jan-70 */
 
+typedef time_t (*ext_time_ft) (time_t *);    /*!< Pointer type for External time function. */
+typedef int (*ext_settime_ft) (const time_t *); /*!< Pointer type for External set time function. */
+
+extern ext_time_ft _ext_time;          //!< Pointer to External time callback function
+extern ext_settime_ft _ext_settime;    //!< Pointer to External set time callback function
+
+/*
+ * ========= Set Functions ============
+ */
+void kset_rtc_time (ext_time_ft f);
+void kset_rtc_settime (ext_settime_ft f);
+
 /* =================== Exported Functions ===================== */
 
 void kinit_SysTick (void);
@@ -65,7 +77,7 @@ void update_freq (clock_t f);
 
 clock_t clock (void);
 time_t time(time_t * /*timer*/);
-
+int settime (const time_t *t);
 
 #ifdef __cplusplus
 }

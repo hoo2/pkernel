@@ -27,6 +27,8 @@
 static clock_t  volatile kcpu_clk;     /*!< The kernel's "knowledge" of cpu clock */
 static clock_t  volatile kfreq;        /*!< The kernels frequency */
 
+ext_time_ft _ext_time = NULL;         //!< Pointer to External time callback function
+ext_settime_ft _ext_settime = NULL;   //!< Pointer to External set time callback function
 
 /*!
  * Initialize and Start the SysTick with the kcpu_clk and kfreq
@@ -109,6 +111,35 @@ void update_clock (clock_t clk)
    }
 }
 
+/*
+ * ========= Set Functions ============
+ */
+
+/*!
+ * \brief
+ *    Set the External time() provider. This sets the \sa _ext_time
+ *    This way the usys can call the _ext_time() to provide a more
+ *    accurate time().
+ *
+ * \param   f     Pointer to User's (or driver's) callback
+ * \return        None
+ */
+void kset_rtc_time (ext_time_ft f) {
+   if (f)   _ext_time = f;
+}
+
+/*!
+ * \brief
+ *    Set the External settime() forwarder. This sets the \sa _ext_settime
+ *    This way the usys can call the _extset_time() when sets the time.
+ *
+ * \param   f     Pointer to User's (or driver's) callback
+ * \return        None
+ */
+void kset_rtc_settime (ext_settime_ft f) {
+   if (f)   _ext_settime = f;
+}
+
 /*!
  * \brief
  *  determines the processor time used.
@@ -132,10 +163,35 @@ inline clock_t clock (void)
  *  time. If timer is not a null pointer, the return value
  *  is also assigned to the object it points to.
  */
-time_t time (time_t *timer)
-{
-   if (timer)
-      *timer = (time_t)Now;
-   return (time_t)Now;
+time_t time (time_t *timer) {
+
+    if (_ext_time)
+        return _ext_time (timer);    // Forward to external time system
+    else {                           // If no external system, use Now
+        if (timer)  *timer = (time_t)Now;
+        return (time_t)Now;
+    }
 }
 
+/*!
+ * \brief
+ *    Sets the system's idea of the time and date.  The time,
+ *    pointed to by t, is measured in seconds since the Epoch, 1970-01-01
+ *    00:00:00 +0000 (UTC).
+ * \param
+ *    t     Pointer to new system's time and date.
+ * \return
+ *    On success, zero is returned.  On error, -1 is returned
+ */
+int settime (const time_t *t) {
+    if (_ext_settime)
+        return _ext_settime (t);     // Forward to external time system
+    else {                           // If no external system, use __now
+        if (t) {
+            Now = *t;
+            return 0;
+        }
+        else
+            return -1;
+    }
+}

@@ -209,7 +209,7 @@ void cron (void)
 {
    cron_t *m = cronl.head;
 
-   if (!m)     // No Cron list. Aboart!
+   if (!m)     // No Cron list. Abort!
       return;
 
    if (__malloc_state() || __proc_state())
@@ -223,8 +223,8 @@ void cron (void)
    }
    // Find process to create
    do {
-      if ((Now == m->at) || (!((Now-m->at) % m->every)))
-      {
+      time_t t = time(0);
+      if ((t == m->at) || (!((t - m->at) % m->every))) {
          // Call knew() if the process does not exist
          if (proc_search_pid (m->fptr) == -1)
             knew (m->fptr, m->ms, m->nice, m->fit);
