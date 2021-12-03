@@ -39,32 +39,31 @@ static os_command_t os_command;
  * \param  None
  * \retval None
  */
-void SysTick_Handler(void)
-{
-   // Trigger PendSV
-   __pendsv_trig ();
-
-   /*
+void SysTick_Handler(void) {
+    /*
     * Update Exported Counters and
     * call cron and micron.
     */
-   ++Ticks;
-   services ();
-   if ( !_ext_time && !(Ticks % get_freq ()))
-       ++Now;   // Do not update Now when we have external time system
-   if (pNow != time(0)) {
-       pNow = time(0);
-       cron ();
-   }
-   // In case of cron stretching call cron() continuously.
-   if (cron_stretching())
-      cron ();
+    ++Ticks;
+    if ( !_ext_time && !(Ticks % get_freq ()))
+        ++Now;   // Do not update Now when we have external time system
 
-   // If we have process in runq consume time of it.
-   if ( !sch_runq_empty () )
-      proc_dec_ticks (proc_get_current_pid());
-   // Return to PendSV
-   //__asm volatile ("BX %0" : : "r" (0xFFFFFFF1));
+    if (kernel_vars.enable) {
+        // Trigger PendSV
+        __pendsv_trig ();
+        services ();
+        if (pNow != time(0)) {
+            pNow = time(0);
+            cron ();
+        }
+        // In case of cron stretching call cron() continuously.
+        if (cron_stretching())
+            cron ();
+
+        // If we have process in runq consume time of it.
+        if ( !sch_runq_empty () )
+            proc_dec_ticks (proc_get_current_pid());
+    }
 }
 
 /*!

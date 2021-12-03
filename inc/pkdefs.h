@@ -202,6 +202,7 @@ typedef struct kernel_vars {
     volatile uint8_t prock;     /*!< proc lock flag. Set proc table is used. */
     volatile uint8_t cron_stretch;
     volatile uint8_t service_lock;
+    volatile uint8_t enable;    /*!< pkernel enable flag */
 }kernel_var_t;
 extern kernel_var_t   kernel_vars;
 

@@ -71,7 +71,8 @@
 #include <os.h>
 
 pid_t knew (process_ptr_t fptr, size_t mem, int8_t nice, int8_t fit);
-int   kinit (size_t kmsize, clock_t clk, clock_t os_f);
+void  kinit_ticks (clock_t clk, clock_t os_f);
+int   kinit_allocation (size_t kmsize);
 void  krun (void);
 
 extern clock_t clock (void);
